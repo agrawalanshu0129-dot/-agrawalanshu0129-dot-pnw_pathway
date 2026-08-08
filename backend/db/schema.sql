@@ -78,3 +78,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_checklist_student ON checklist_items(student_id);
 CREATE INDEX IF NOT EXISTS idx_checklist_due ON checklist_items(due_date);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+
+-- City-life module: audit trail for the web-search-enabled assistant,
+-- separate from the admissions assistant's audit rows (both share
+-- audit_log, distinguished by action = 'city_assistant_query').
+-- No new table needed beyond audit_log; kept here as a schema note.

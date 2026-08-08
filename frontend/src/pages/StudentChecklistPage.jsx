@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
 import AssistantWidget from "../components/AssistantWidget";
+import RoadmapView from "../components/RoadmapView";
 
 const STATUS_LABEL = {
   not_started: "Not started",
@@ -55,7 +56,7 @@ export default function StudentChecklistPage() {
   if (error) return <div className="container"><div className="error-box">{error}</div></div>;
   if (!data) return <div className="container">Loading your checklist...</div>;
 
-  const { student, items } = data;
+  const { student, items, roadmap } = data;
   const completed = items.filter((i) => i.status === "approved").length;
   const percent = items.length ? Math.round((completed / items.length) * 100) : 0;
 
@@ -74,7 +75,11 @@ export default function StudentChecklistPage() {
           <div className="stat"><div className="num">{completed}</div><div className="label">Approved</div></div>
           <div className="stat"><div className="num">{percent}%</div><div className="label">Complete</div></div>
         </div>
+      </div>
 
+      <RoadmapView roadmap={roadmap} />
+
+      <div className="card">
         <h2>Your checklist</h2>
         {items.map((item) => {
           const d = daysLabel(item.due_date);

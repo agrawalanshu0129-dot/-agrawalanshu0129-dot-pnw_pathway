@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import StudentChecklistPage from "./pages/StudentChecklistPage";
 import StaffDashboardPage from "./pages/StaffDashboardPage";
+import CityLifePage from "./pages/CityLifePage";
 import { api } from "./api";
 import "./styles.css";
 
@@ -24,6 +25,7 @@ function StudentArea() {
   const { token } = useAuth();
   const [checked, setChecked] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [tab, setTab] = useState("checklist");
 
   useEffect(() => {
     api.myChecklist(token)
@@ -34,7 +36,18 @@ function StudentArea() {
 
   if (!checked) return <div className="container">Loading...</div>;
   if (needsOnboarding) return <OnboardingPage onDone={() => setNeedsOnboarding(false)} />;
-  return <StudentChecklistPage />;
+
+  return (
+    <div>
+      <div className="container" style={{ paddingBottom: 0, paddingTop: 20 }}>
+        <div className="tabs">
+          <button className={tab === "checklist" ? "active" : ""} onClick={() => setTab("checklist")}>My Checklist</button>
+          <button className={tab === "citylife" ? "active" : ""} onClick={() => setTab("citylife")}>Settling In: Everett</button>
+        </div>
+      </div>
+      {tab === "checklist" ? <StudentChecklistPage /> : <CityLifePage />}
+    </div>
+  );
 }
 
 function Shell() {

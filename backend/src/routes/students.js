@@ -76,7 +76,7 @@ router.get("/me/checklist", requireAuth, requireRole("student"), async (req, res
 
     const itemsRes = await pool.query(
       `SELECT ci.id, ci.status, ci.due_date, ci.completed_at, ci.reviewer_note,
-              rt.code, rt.title, rt.description, rt.owner_office, rt.visa_critical
+              rt.code, rt.title, rt.description, rt.owner_office, rt.visa_critical, rt.sort_order
        FROM checklist_items ci
        JOIN requirement_templates rt ON rt.id = ci.template_id
        WHERE ci.student_id = $1
@@ -84,7 +84,31 @@ router.get("/me/checklist", requireAuth, requireRole("student"), async (req, res
       [student.id]
     );
 
-    res.json({ student, items: itemsRes.rows });
+    // Journey roadmap: the same items, in the sequence they're meant to be
+    // tackled (sort_order, i.e. the order ISS actually processes them),
+    // rather than by deadline. "current" is the first open item in that
+    // sequence; everything after it is "what comes next", with its due
+    // date doubling as the ETA.
+    const bySequence = [...itemsRes.rows].sort((a, b) => a.sort_order - b.sort_order);
+    const isOpen = (s) => s === "not_started" || s === "in_progress" || s === "returned";
+    const currentIndex = bySequence.findIndex((i) => isOpen(i.status));
+    const roadmap = bySequence.map((item, idx) => ({
+      id: item.id,
+      title: item.title,
+      status: item.status,
+      due_date: item.due_date,
+      visa_critical: item.visa_critical,
+      stage:
+        item.status === "approved"
+          ? "done"
+          : currentIndex === idx
+          ? "current"
+          : currentIndex === -1 || idx < currentIndex
+          ? "done"
+          : "upcoming",
+    }));
+
+    res.json({ student, items: itemsRes.rows, roadmap });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Could not load checklist" });

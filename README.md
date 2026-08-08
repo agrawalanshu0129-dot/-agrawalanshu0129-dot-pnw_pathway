@@ -2,7 +2,7 @@
 
 A student journey and requirements tracking platform for Pacific Northwest University, built as the working prototype for the ITEC 6993 IT Capstone: Applied Technology Solutions.
 
-PNW Pathway replaces the fragmented spreadsheet-and-email process admitted students go through with a single personalized checklist (domestic and international tracks), a staff dashboard with an at-risk queue, and an AI assistant that answers requirement questions strictly from approved university documentation.
+PNW Pathway replaces the fragmented spreadsheet-and-email process admitted students go through with a single personalized checklist (domestic and international tracks), a visual journey roadmap showing what's next and its ETA, a staff dashboard with an at-risk queue, an admissions AI assistant that answers requirement questions strictly from approved university documentation, and a "Settling In" module (cost of living, neighborhoods, transit, a budget calculator, and a second, web-search-enabled assistant) for students getting oriented to Everett, WA.
 
 **Live demo:** _add your deployed Vercel URL here once deployed_
 **Demo accounts:** see [Demo accounts](#demo-accounts) below.
@@ -20,7 +20,8 @@ React (Vite) ──HTTPS──> Node/Express API ──> PostgreSQL (Neon)
 - **Backend:** Node.js + Express REST API, deployed as a free web service on Render.
 - **Database:** PostgreSQL, hosted on Neon's permanent free tier (chosen specifically because Render's free Postgres auto-deletes after 30 days, which would silently break this project after submission).
 - **Auth:** JWT + bcrypt, role-based access control (student / staff / supervisor / admin) enforced in middleware.
-- **AI assistant:** Retrieval over an approved-document set. Runs in a zero-cost citation-only fallback mode by default; if `ANTHROPIC_API_KEY` is set, it generates natural-language answers from the same retrieved passages. Either mode cites sources and escalates instead of guessing when nothing relevant is found.
+- **Admissions AI assistant:** Retrieval over an approved-document set only (`backend/src/routes/ai.js`). Runs in a zero-cost citation-only fallback mode by default; if `ANTHROPIC_API_KEY` is set, it generates natural-language answers from the same retrieved passages. Deliberately never uses live web search: visa/requirements answers carry real consequences (NFR8), so this assistant is restricted to vetted content.
+- **City Life assistant:** A second, separate assistant (`backend/src/routes/city.js`) for lower-stakes settling-in questions (cost of living, housing, transit, budgeting). When `ANTHROPIC_API_KEY` is set, it's allowed to use Anthropic's `web_search` tool for current information; with no key, it falls back to curated, hand-verified Everett, WA content at zero cost. Kept fully separate from the admissions assistant on purpose, so enabling web search here can never affect the safety behavior of the visa/requirements assistant.
 
 This mirrors the full target architecture from the capstone's architecture deliverable (Cognito → JWT auth, RDS → Neon Postgres, S3 document store → simplified to metadata-only for the prototype, SES → simplified to no-op for the prototype). The swap points are isolated so upgrading to the full AWS services later does not require a redesign.
 
@@ -37,9 +38,19 @@ This mirrors the full target architecture from the capstone's architecture deliv
 | FR7 | Staff approve/return submissions | `backend/src/routes/students.js` (`PATCH /:studentId/checklist/:itemId/review`) |
 | FR10 | AI assistant, approved-docs-only, cites sources, escalates | `backend/src/routes/ai.js`, `backend/src/ai/docs.js` |
 | NFR1 | RBAC + JWT auth | `backend/src/middleware/auth.js` |
-| NFR2 | Audit logging | `audit_log` table, written on every mutating action |
+| NFR2 | Audit logging | `audit_log` table, written on every mutating action (including both assistants) |
 | NFR6 | Requirement rules are configuration, not code | `requirement_templates` table; edit rows, no redeploy needed |
 | NFR8 | AI safety: approved sources only, cites, escalates | `backend/src/routes/ai.js` |
+
+**Added beyond the original scope**, at the client's later request:
+
+| Feature | Where |
+|---|---|
+| Journey roadmap: what's next, and its ETA | `backend/src/routes/students.js` (roadmap computed from `sort_order`), `frontend/src/components/RoadmapView.jsx` |
+| City Life module: cost of living, neighborhoods, transit, budget calculator | `backend/src/city/cityDocs.js`, `backend/src/routes/city.js`, `frontend/src/pages/CityLifePage.jsx` |
+| City Life assistant with live web search | `backend/src/routes/city.js` (`POST /api/city/ask`) |
+
+These were added mid-course, after the Week 4 feature freeze in the project plan. Documented here rather than silently absorbed into the original FR list, since a capstone's process record should reflect what actually happened.
 
 FR8/FR9 (caseload reassignment, vacation coverage) and FR11 (admin console UI) are schema-ready (`assignments` table exists) but not yet wired to routes/UI — see Known Limitations.
 
@@ -127,7 +138,9 @@ These are deliberate scope decisions for a capstone prototype on free-tier infra
 - **Document uploads are metadata-only.** Students mark items "submitted"; no actual file bytes are stored (S3 in the target architecture). Adding real uploads is an additive change (one route + a storage bucket), not a redesign.
 - **Email reminders are not sent.** The due-date logic and UI countdown are real; wiring to an actual email provider (SES in the target architecture) was left out to keep the prototype free-tier and dependency-free. `backend/src/atRisk.js` already computes exactly who should be notified and why.
 - **Caseload reassignment and vacation coverage (FR8/FR9)** have a schema (`assignments` table) but no route/UI yet.
-- **AI assistant retrieval** uses keyword matching, not vector embeddings, to avoid a paid embeddings API. The interface (`retrieve(query, topK)` in `backend/src/ai/docs.js`) is designed to be swapped for real embedding search without touching the route.
+- **AI assistant retrieval** uses keyword matching, not vector embeddings, to avoid a paid embeddings API. The interface (`retrieve(query, topK)` in `backend/src/ai/docs.js` and `backend/src/city/cityDocs.js`) is designed to be swapped for real embedding search without touching the routes.
+- **City Life content covers Everett, WA only.** The data model (`backend/src/city/cityDocs.js`) is a flat curated set for one city; a multi-campus version would need this keyed by campus/city.
+- **City Life web search costs money at scale.** Each query with `ANTHROPIC_API_KEY` set makes a live API call with web search enabled. Fine for a demo or small pilot; a production deployment would want caching and/or rate limiting per user.
 
 ## License
 

@@ -36,4 +36,7 @@ export const api = {
     }),
 
   askAssistant: (token, question) => request("/ai/ask", { method: "POST", token, body: { question } }),
+
+  cityInfo: (token) => request("/city/info", { token }),
+  askCityAssistant: (token, question) => request("/city/ask", { method: "POST", token, body: { question } }),
 };

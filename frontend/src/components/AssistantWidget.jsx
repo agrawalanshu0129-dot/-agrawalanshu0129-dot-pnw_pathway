@@ -2,8 +2,13 @@ import { useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
 
-export default function AssistantWidget() {
+// Reusable chat widget. `askFn` lets this same component drive either the
+// admissions assistant (approved-docs-only, see backend/src/routes/ai.js)
+// or the City Life assistant (web-search-enabled, see backend/src/routes/city.js)
+// without duplicating the chat UI.
+export default function AssistantWidget({ askFn, placeholder, examples }) {
   const { token } = useAuth();
+  const askApi = askFn || api.askAssistant;
   const [messages, setMessages] = useState([]);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,7 +21,7 @@ export default function AssistantWidget() {
     setQuestion("");
     setLoading(true);
     try {
-      const res = await api.askAssistant(token, q);
+      const res = await askApi(token, q);
       setMessages((m) => [...m, { role: "assistant", text: res.answer, sources: res.sources }]);
     } catch (err) {
       setMessages((m) => [...m, { role: "assistant", text: `Error: ${err.message}`, sources: [] }]);
@@ -29,7 +34,7 @@ export default function AssistantWidget() {
     <div>
       <div className="chat-box">
         {messages.length === 0 && (
-          <div className="hint">Try asking: "When do I need to pay the SEVIS fee?" or "What financial documents do I need as a sponsored student?"</div>
+          <div className="hint">{examples || 'Try asking: "When do I need to pay the SEVIS fee?" or "What financial documents do I need as a sponsored student?"'}</div>
         )}
         {messages.map((m, i) => (
           <div className={`chat-msg ${m.role}`} key={i}>
@@ -46,7 +51,7 @@ export default function AssistantWidget() {
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask about a requirement..."
+          placeholder={placeholder || "Ask about a requirement..."}
         />
         <button className="primary" disabled={loading}>Ask</button>
       </form>
