@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./AuthContext";
 import LoginPage from "./pages/LoginPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import StudentChecklistPage from "./pages/StudentChecklistPage";
 import StaffDashboardPage from "./pages/StaffDashboardPage";
@@ -66,6 +67,9 @@ function Shell() {
 }
 
 export default function App() {
+  const resetToken = new URLSearchParams(window.location.search).get("reset_token");
+  if (resetToken) return <ResetPasswordPage token={resetToken} />;
+
   return (
     <AuthProvider>
       <Shell />

@@ -7,6 +7,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -14,12 +15,18 @@ export default function LoginPage() {
   async function submit(e) {
     e.preventDefault();
     setError("");
+    setNotice("");
     setLoading(true);
     try {
-      const data = mode === "login"
-        ? await api.login({ email: form.email, password: form.password })
-        : await api.register(form);
-      login(data.token, data.user);
+      if (mode === "forgot") {
+        const res = await api.forgotPassword(form.email);
+        setNotice(res.message);
+      } else {
+        const data = mode === "login"
+          ? await api.login({ email: form.email, password: form.password })
+          : await api.register(form);
+        login(data.token, data.user);
+      }
     } catch (err) {
       setError(err.message + (err.message.includes("fetch") ? " (backend may be waking up, try again in 30s)" : ""));
     } finally {
@@ -32,6 +39,12 @@ export default function LoginPage() {
     setForm({ email, password: "Demo1234!", full_name: "" });
   }
 
+  function switchMode(next) {
+    setMode(next);
+    setError("");
+    setNotice("");
+  }
+
   return (
     <div className="login-wrap">
       <div className="login-card">
@@ -39,6 +52,7 @@ export default function LoginPage() {
         <p className="subtitle">Student journey &amp; requirements tracker</p>
 
         {error && <div className="error-box">{error}</div>}
+        {notice && <div className="hint" style={{ color: "#2c5f2d", marginTop: -4 }}>{notice}</div>}
 
         <form onSubmit={submit}>
           {mode === "register" && (
@@ -49,27 +63,41 @@ export default function LoginPage() {
           )}
           <label>Email</label>
           <input type="email" value={form.email} onChange={set("email")} required />
-          <label>Password</label>
-          <input type="password" value={form.password} onChange={set("password")} required minLength={8} />
+          {mode !== "forgot" && (
+            <>
+              <label>Password</label>
+              <input type="password" value={form.password} onChange={set("password")} required minLength={8} />
+            </>
+          )}
           <button className="primary" style={{ width: "100%" }} disabled={loading}>
-            {loading ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
+            {loading ? "Please wait..." : mode === "login" ? "Log in" : mode === "register" ? "Create account" : "Send reset link"}
           </button>
         </form>
 
         <div className="toggle-row">
-          {mode === "login" ? (
-            <>New student? <button onClick={() => setMode("register")}>Create an account</button></>
-          ) : (
-            <>Already have an account? <button onClick={() => setMode("login")}>Log in</button></>
+          {mode === "login" && (
+            <>
+              New student? <button onClick={() => switchMode("register")}>Create an account</button>
+              {" · "}
+              <button onClick={() => switchMode("forgot")}>Forgot password?</button>
+            </>
+          )}
+          {mode === "register" && (
+            <>Already have an account? <button onClick={() => switchMode("login")}>Log in</button></>
+          )}
+          {mode === "forgot" && (
+            <>Remembered it? <button onClick={() => switchMode("login")}>Log in</button></>
           )}
         </div>
 
-        <div className="demo-box">
-          <strong>Demo accounts</strong> (password: Demo1234!)<br />
-          <button className="secondary small" style={{marginTop:6, marginRight:6}} onClick={() => fillDemo("staff@pnwu.edu")}>Staff (ISS)</button>
-          <button className="secondary small" style={{marginTop:6, marginRight:6}} onClick={() => fillDemo("student.intl@pnwu.edu")}>Int'l student</button>
-          <button className="secondary small" style={{marginTop:6}} onClick={() => fillDemo("student.domestic@pnwu.edu")}>Domestic student</button>
-        </div>
+        {mode === "login" && (
+          <div className="demo-box">
+            <strong>Demo accounts</strong> (password: Demo1234!)<br />
+            <button className="secondary small" style={{marginTop:6, marginRight:6}} onClick={() => fillDemo("staff@pnwu.edu")}>Staff (ISS)</button>
+            <button className="secondary small" style={{marginTop:6, marginRight:6}} onClick={() => fillDemo("student.intl@pnwu.edu")}>Int'l student</button>
+            <button className="secondary small" style={{marginTop:6}} onClick={() => fillDemo("student.domestic@pnwu.edu")}>Domestic student</button>
+          </div>
+        )}
       </div>
     </div>
   );

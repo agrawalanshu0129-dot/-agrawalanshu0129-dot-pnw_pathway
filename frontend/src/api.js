@@ -92,4 +92,9 @@ export const api = {
   createStaffUser: (token, body) => request("/admin/users", { method: "POST", token, body }),
   changeUserRole: (token, id, role) =>
     request(`/admin/users/${id}/role`, { method: "PATCH", token, body: { role } }),
+  auditLog: (token, beforeId) => request(`/admin/audit-log${beforeId ? `?before_id=${beforeId}` : ""}`, { token }),
+
+  forgotPassword: (email) => request("/auth/forgot-password", { method: "POST", body: { email } }),
+  resetPassword: (reset_token, new_password) =>
+    request("/auth/reset-password", { method: "POST", body: { reset_token, new_password } }),
 };

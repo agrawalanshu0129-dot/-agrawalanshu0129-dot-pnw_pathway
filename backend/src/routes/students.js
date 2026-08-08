@@ -80,6 +80,14 @@ router.get("/me/checklist", requireAuth, requireRole("student"), async (req, res
     }
     const student = studentRes.rows[0];
 
+    const staffRes = await pool.query(
+      `SELECT u.full_name, u.email
+       FROM assignments a JOIN users u ON u.id = a.staff_user_id
+       WHERE a.student_id = $1 AND a.ended_at IS NULL`,
+      [student.id]
+    );
+    const assignedStaff = staffRes.rows[0] || null;
+
     const itemsRes = await pool.query(
       `SELECT ci.id, ci.status, ci.due_date, ci.completed_at, ci.reviewer_note,
               rt.code, rt.title, rt.description, rt.owner_office, rt.visa_critical, rt.sort_order,
@@ -115,7 +123,7 @@ router.get("/me/checklist", requireAuth, requireRole("student"), async (req, res
           : "upcoming",
     }));
 
-    res.json({ student, items: itemsRes.rows, roadmap });
+    res.json({ student, assigned_staff: assignedStaff, items: itemsRes.rows, roadmap });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Could not load checklist" });

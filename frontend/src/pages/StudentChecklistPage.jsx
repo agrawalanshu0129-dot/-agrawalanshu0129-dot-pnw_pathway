@@ -78,7 +78,7 @@ export default function StudentChecklistPage() {
   if (error) return <div className="container"><div className="error-box">{error}</div></div>;
   if (!data) return <div className="container">Loading your checklist...</div>;
 
-  const { student, items, roadmap } = data;
+  const { student, assigned_staff, items, roadmap } = data;
   const completed = items.filter((i) => i.status === "approved").length;
   const percent = items.length ? Math.round((completed / items.length) * 100) : 0;
 
@@ -90,6 +90,11 @@ export default function StudentChecklistPage() {
           {student.population === "international" ? "International" : "Domestic"} student
           {student.program ? ` \u00b7 ${student.program}` : ""}
           {student.country ? ` \u00b7 ${student.country}` : ""}
+        </p>
+        <p className="hint" style={{ marginTop: -8 }}>
+          {assigned_staff
+            ? `Your ISS contact: ${assigned_staff.full_name} (${assigned_staff.email})`
+            : "Your ISS contact hasn't been assigned yet."}
         </p>
 
         <div className="summary-grid">
