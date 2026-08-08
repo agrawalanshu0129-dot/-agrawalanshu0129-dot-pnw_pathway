@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: pnw-pathway-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false          # paste your Neon connection string in the Render dashboard
+      - key: ANTHROPIC_API_KEY
+        sync: false          # optional: leave unset to use the built-in citation-only fallback
+      - key: PGSSL
+        value: "true"
