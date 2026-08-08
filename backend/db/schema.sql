@@ -65,6 +65,17 @@ CREATE TABLE IF NOT EXISTS assignments (
   ended_at        TIMESTAMPTZ
 );
 
+CREATE TABLE IF NOT EXISTS documents (
+  id                  SERIAL PRIMARY KEY,
+  checklist_item_id   INTEGER NOT NULL REFERENCES checklist_items(id) ON DELETE CASCADE,
+  student_id          INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  filename            TEXT NOT NULL,
+  mime_type           TEXT NOT NULL,
+  size_bytes          INTEGER NOT NULL,
+  content             BYTEA NOT NULL,
+  uploaded_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS audit_log (
   id              SERIAL PRIMARY KEY,
   actor_user_id   INTEGER REFERENCES users(id),
@@ -78,6 +89,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_checklist_student ON checklist_items(student_id);
 CREATE INDEX IF NOT EXISTS idx_checklist_due ON checklist_items(due_date);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_documents_checklist_item ON documents(checklist_item_id);
 
 -- City-life module: audit trail for the web-search-enabled assistant,
 -- separate from the admissions assistant's audit rows (both share

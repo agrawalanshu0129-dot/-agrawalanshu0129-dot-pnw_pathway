@@ -13,7 +13,9 @@ const adminRoutes = require("./routes/admin");
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+// Higher-than-default limit so document uploads (base64-encoded in JSON,
+// see routes/students.js) fit; MAX_DOCUMENT_BYTES there is the real cap.
+app.use(express.json({ limit: "8mb" }));
 
 app.get("/api/health", (req, res) => res.json({ ok: true, service: "pnw-pathway-api" }));
 

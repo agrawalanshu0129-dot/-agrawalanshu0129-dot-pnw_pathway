@@ -5,6 +5,12 @@ const { generateChecklist } = require("../rulesEngine");
 
 const router = express.Router();
 
+// Document uploads: stored as bytea in Postgres rather than an object-storage
+// bucket, so real uploads work without adding a paid dependency to the
+// free-tier prototype (see README Known Limitations).
+const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_DOCUMENT_TYPES = ["application/pdf", "image/png", "image/jpeg"];
+
 router.post("/onboard", requireAuth, requireRole("student"), async (req, res) => {
   const { population, program, country, funding_type } = req.body || {};
   if (!population || !program) {
@@ -76,7 +82,8 @@ router.get("/me/checklist", requireAuth, requireRole("student"), async (req, res
 
     const itemsRes = await pool.query(
       `SELECT ci.id, ci.status, ci.due_date, ci.completed_at, ci.reviewer_note,
-              rt.code, rt.title, rt.description, rt.owner_office, rt.visa_critical, rt.sort_order
+              rt.code, rt.title, rt.description, rt.owner_office, rt.visa_critical, rt.sort_order,
+              EXISTS(SELECT 1 FROM documents d WHERE d.checklist_item_id = ci.id) AS has_document
        FROM checklist_items ci
        JOIN requirement_templates rt ON rt.id = ci.template_id
        WHERE ci.student_id = $1
@@ -140,6 +147,127 @@ router.patch("/me/checklist/:itemId", requireAuth, requireRole("student"), async
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Could not update item" });
+  }
+});
+
+router.post("/me/checklist/:itemId/document", requireAuth, requireRole("student"), async (req, res) => {
+  const { filename, mime_type, content_base64 } = req.body || {};
+  if (!filename || !mime_type || !content_base64) {
+    return res.status(400).json({ error: "filename, mime_type, and content_base64 are required" });
+  }
+  if (!ALLOWED_DOCUMENT_TYPES.includes(mime_type)) {
+    return res.status(400).json({ error: `mime_type must be one of: ${ALLOWED_DOCUMENT_TYPES.join(", ")}` });
+  }
+
+  let content;
+  try {
+    content = Buffer.from(content_base64, "base64");
+  } catch {
+    return res.status(400).json({ error: "content_base64 is not valid base64" });
+  }
+  if (content.length === 0 || content.length > MAX_DOCUMENT_BYTES) {
+    return res.status(400).json({ error: `File must be between 1 byte and ${MAX_DOCUMENT_BYTES / (1024 * 1024)}MB` });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const studentRes = await client.query("SELECT id FROM students WHERE user_id = $1", [req.user.id]);
+    if (studentRes.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Student profile not found" });
+    }
+    const studentId = studentRes.rows[0].id;
+
+    const itemRes = await client.query(
+      "SELECT id, status FROM checklist_items WHERE id = $1 AND student_id = $2",
+      [req.params.itemId, studentId]
+    );
+    if (itemRes.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Checklist item not found" });
+    }
+    if (itemRes.rows[0].status === "approved") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "This item is already approved; nothing to re-submit" });
+    }
+
+    await client.query("DELETE FROM documents WHERE checklist_item_id = $1", [req.params.itemId]);
+    await client.query(
+      `INSERT INTO documents (checklist_item_id, student_id, filename, mime_type, size_bytes, content)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [req.params.itemId, studentId, filename, mime_type, content.length, content]
+    );
+
+    const result = await client.query(
+      `UPDATE checklist_items SET status='submitted' WHERE id=$1 RETURNING *`,
+      [req.params.itemId]
+    );
+
+    await client.query(
+      `INSERT INTO audit_log (actor_user_id, action, entity, entity_id, detail)
+       VALUES ($1,'upload_document','checklist_item',$2,$3)`,
+      [req.user.id, req.params.itemId, { filename, mime_type, size_bytes: content.length }]
+    );
+
+    await client.query("COMMIT");
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "Upload failed" });
+  } finally {
+    client.release();
+  }
+});
+
+router.get("/me/checklist/:itemId/document", requireAuth, requireRole("student"), async (req, res) => {
+  try {
+    const studentRes = await pool.query("SELECT id FROM students WHERE user_id = $1", [req.user.id]);
+    if (studentRes.rows.length === 0) return res.status(404).json({ error: "Student profile not found" });
+
+    const docRes = await pool.query(
+      "SELECT filename, mime_type, content FROM documents WHERE checklist_item_id = $1 AND student_id = $2",
+      [req.params.itemId, studentRes.rows[0].id]
+    );
+    if (docRes.rows.length === 0) return res.status(404).json({ error: "No document uploaded for this item" });
+
+    const doc = docRes.rows[0];
+    res.set("Content-Type", doc.mime_type);
+    res.set("Content-Disposition", `inline; filename="${encodeURIComponent(doc.filename)}"`);
+    res.send(doc.content);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not load document" });
+  }
+});
+
+router.get("/:studentId/checklist/:itemId/document", requireAuth, requireRole("staff", "supervisor", "admin"), async (req, res) => {
+  try {
+    if (req.user.role === "staff") {
+      const ownsCaseload = await pool.query(
+        "SELECT 1 FROM assignments WHERE student_id = $1 AND staff_user_id = $2 AND ended_at IS NULL",
+        [req.params.studentId, req.user.id]
+      );
+      if (ownsCaseload.rows.length === 0) {
+        return res.status(403).json({ error: "This student is not on your caseload" });
+      }
+    }
+
+    const docRes = await pool.query(
+      "SELECT filename, mime_type, content FROM documents WHERE checklist_item_id = $1 AND student_id = $2",
+      [req.params.itemId, req.params.studentId]
+    );
+    if (docRes.rows.length === 0) return res.status(404).json({ error: "No document uploaded for this item" });
+
+    const doc = docRes.rows[0];
+    res.set("Content-Type", doc.mime_type);
+    res.set("Content-Disposition", `inline; filename="${encodeURIComponent(doc.filename)}"`);
+    res.send(doc.content);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not load document" });
   }
 });
 

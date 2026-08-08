@@ -17,6 +17,30 @@ async function request(path, { method = "GET", token, body } = {}) {
   return data;
 }
 
+// Downloads a document and opens it in a new tab, rather than following a
+// plain <a href> (the endpoint requires the same Bearer token as every
+// other API call, so it can't be a bare link).
+async function openDocument(path, token) {
+  const res = await fetch(`${BASE_URL}/api${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Could not load document (${res.status})`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export const api = {
   register: (body) => request("/auth/register", { method: "POST", body }),
   login: (body) => request("/auth/login", { method: "POST", body }),
@@ -30,10 +54,25 @@ export const api = {
     const qs = new URLSearchParams(params).toString();
     return request(`/dashboard${qs ? `?${qs}` : ""}`, { token });
   },
+  studentDetail: (token, studentId) => request(`/dashboard/${studentId}`, { token }),
+  sendReminders: (token, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/dashboard/remind${qs ? `?${qs}` : ""}`, { method: "POST", token });
+  },
   reviewItem: (token, studentId, itemId, status, reviewer_note) =>
     request(`/students/${studentId}/checklist/${itemId}/review`, {
       method: "PATCH", token, body: { status, reviewer_note },
     }),
+
+  uploadMyDocument: async (token, itemId, file) => {
+    const content_base64 = await fileToBase64(file);
+    return request(`/students/me/checklist/${itemId}/document`, {
+      method: "POST", token, body: { filename: file.name, mime_type: file.type, content_base64 },
+    });
+  },
+  openMyDocument: (token, itemId) => openDocument(`/students/me/checklist/${itemId}/document`, token),
+  openStudentDocument: (token, studentId, itemId) =>
+    openDocument(`/students/${studentId}/checklist/${itemId}/document`, token),
 
   askAssistant: (token, question) => request("/ai/ask", { method: "POST", token, body: { question } }),
 
