@@ -8,6 +8,7 @@ const DEMO_PASSWORD = "Demo1234!";
 
 const demoUsers = [
   { email: "admin@pnwu.edu", role: "admin", full_name: "Dana CIO-Delegate" },
+  { email: "supervisor@pnwu.edu", role: "supervisor", full_name: "Sam Rivera" },
   { email: "staff@pnwu.edu", role: "staff", full_name: "Maria Delgado (ISS)" },
   { email: "student.intl@pnwu.edu", role: "student", full_name: "Priya Sharma",
     profile: { population: "international", program: "MS Computer Science", country: "India", funding_type: "self" } },

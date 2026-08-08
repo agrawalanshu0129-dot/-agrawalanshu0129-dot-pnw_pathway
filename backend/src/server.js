@@ -8,6 +8,8 @@ const studentRoutes = require("./routes/students");
 const dashboardRoutes = require("./routes/dashboard");
 const aiRoutes = require("./routes/ai");
 const cityRoutes = require("./routes/city");
+const assignmentRoutes = require("./routes/assignments");
+const adminRoutes = require("./routes/admin");
 
 const app = express();
 app.use(cors());
@@ -20,6 +22,8 @@ app.use("/api/students", studentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/city", cityRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 app.use((err, req, res, next) => {

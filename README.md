@@ -36,7 +36,10 @@ This mirrors the full target architecture from the capstone's architecture deliv
 | FR5 | Reminders | Deadline countdown surfaced in the student UI (email delivery simplified for the prototype, see Known Limitations) |
 | FR6 | Staff dashboard, filterable, with at-risk queue | `backend/src/routes/dashboard.js`, `frontend/src/pages/StaffDashboardPage.jsx` |
 | FR7 | Staff approve/return submissions | `backend/src/routes/students.js` (`PATCH /:studentId/checklist/:itemId/review`) |
+| FR8 | Caseload assignment (which staff member owns which student) | `backend/src/routes/assignments.js`, `frontend/src/pages/AdminConsolePage.jsx` (Caseload & Coverage) |
+| FR9 | Vacation coverage: bulk-reassign a staff member's caseload | `backend/src/routes/assignments.js` (`POST /reassign`) |
 | FR10 | AI assistant, approved-docs-only, cites sources, escalates | `backend/src/routes/ai.js`, `backend/src/ai/docs.js` |
+| FR11 | Admin console: create/manage staff, supervisor, and admin accounts | `backend/src/routes/admin.js`, `frontend/src/pages/AdminConsolePage.jsx` (Staff Accounts) |
 | NFR1 | RBAC + JWT auth | `backend/src/middleware/auth.js` |
 | NFR2 | Audit logging | `audit_log` table, written on every mutating action (including both assistants) |
 | NFR6 | Requirement rules are configuration, not code | `requirement_templates` table; edit rows, no redeploy needed |
@@ -52,7 +55,7 @@ This mirrors the full target architecture from the capstone's architecture deliv
 
 These were added mid-course, after the Week 4 feature freeze in the project plan. Documented here rather than silently absorbed into the original FR list, since a capstone's process record should reflect what actually happened.
 
-FR8/FR9 (caseload reassignment, vacation coverage) and FR11 (admin console UI) are schema-ready (`assignments` table exists) but not yet wired to routes/UI — see Known Limitations.
+**Role summary:** `staff` manage their own caseload; `supervisor` and `admin` manage everyone's caseload and can reassign it for vacation coverage; `admin` additionally manages staff/supervisor/admin accounts (student accounts remain self-service via registration).
 
 ## Repository Structure
 
@@ -64,12 +67,12 @@ pnw-pathway/
 │       ├── rulesEngine.js   FR2: profile -> checklist
 │       ├── atRisk.js        FR4/FR6: at-risk detection
 │       ├── ai/docs.js       FR10: approved document set + retrieval
-│       ├── routes/          auth, students, dashboard, ai
+│       ├── routes/          auth, students, dashboard, ai, assignments (FR8/FR9), admin (FR11)
 │       ├── middleware/auth.js
 │       └── seed/            demo data
 ├── frontend/          React app
 │   └── src/
-│       ├── pages/      Login, Onboarding, StudentChecklist, StaffDashboard
+│       ├── pages/      Login, Onboarding, StudentChecklist, StaffDashboard, AdminConsole
 │       └── components/ AssistantWidget
 ├── render.yaml         Render deployment blueprint (backend)
 └── frontend/vercel.json  Vercel deployment config (frontend)
@@ -130,8 +133,9 @@ Password for all: `Demo1234!`
 
 | Role | Email | Notes |
 |---|---|---|
-| Staff (ISS) | staff@pnwu.edu | Full dashboard + at-risk queue |
-| Admin | admin@pnwu.edu | Same dashboard access as staff in this prototype |
+| Staff (ISS) | staff@pnwu.edu | Dashboard + at-risk queue, own caseload only |
+| Supervisor | supervisor@pnwu.edu | Dashboard for all students, Caseload &amp; Coverage (assign/reassign) |
+| Admin | admin@pnwu.edu | Everything supervisor has, plus Admin Console (create/manage staff accounts) |
 | Student (int'l, self-funded) | student.intl@pnwu.edu | Priya Sharma, 10-item checklist including visa-critical items |
 | Student (int'l, sponsored) | student.intl2@pnwu.edu | Wei Chen, sponsor-letter track instead of bank statement |
 | Student (domestic) | student.domestic@pnwu.edu | Jordan Miller, 6-item checklist, no visa-critical items |
@@ -144,7 +148,6 @@ These are deliberate scope decisions for a capstone prototype on free-tier infra
 
 - **Document uploads are metadata-only.** Students mark items "submitted"; no actual file bytes are stored (S3 in the target architecture). Adding real uploads is an additive change (one route + a storage bucket), not a redesign.
 - **Email reminders are not sent.** The due-date logic and UI countdown are real; wiring to an actual email provider (SES in the target architecture) was left out to keep the prototype free-tier and dependency-free. `backend/src/atRisk.js` already computes exactly who should be notified and why.
-- **Caseload reassignment and vacation coverage (FR8/FR9)** have a schema (`assignments` table) but no route/UI yet.
 - **AI assistant retrieval** uses keyword matching, not vector embeddings, to avoid a paid embeddings API. The interface (`retrieve(query, topK)` in `backend/src/ai/docs.js` and `backend/src/city/cityDocs.js`) is designed to be swapped for real embedding search without touching the routes.
 - **City Life content covers Everett, WA only.** The data model (`backend/src/city/cityDocs.js`) is a flat curated set for one city; a multi-campus version would need this keyed by campus/city.
 - **City Life web search costs money at scale.** Each query with `ANTHROPIC_API_KEY` set makes a live API call with web search enabled. Fine for a demo or small pilot; a production deployment would want caching and/or rate limiting per user.

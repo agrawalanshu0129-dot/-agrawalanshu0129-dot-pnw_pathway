@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
 import AssistantWidget from "../components/AssistantWidget";
+import AdminConsolePage from "./AdminConsolePage";
 
 export default function StaffDashboardPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [population, setPopulation] = useState("");
   const [program, setProgram] = useState("");
   const [tab, setTab] = useState("students");
+  const canManageCaseloads = user.role === "supervisor" || user.role === "admin";
 
   async function load() {
     try {
@@ -46,9 +48,14 @@ export default function StaffDashboardPage() {
         <button className={tab === "students" ? "active" : ""} onClick={() => setTab("students")}>All Students</button>
         <button className={tab === "atrisk" ? "active" : ""} onClick={() => setTab("atrisk")}>At-Risk Queue ({atRiskStudents.length})</button>
         <button className={tab === "assistant" ? "active" : ""} onClick={() => setTab("assistant")}>Ask Assistant</button>
+        {canManageCaseloads && (
+          <button className={tab === "admin" ? "active" : ""} onClick={() => setTab("admin")}>
+            {user.role === "admin" ? "Admin Console" : "Caseloads"}
+          </button>
+        )}
       </div>
 
-      {tab !== "assistant" && (
+      {(tab === "students" || tab === "atrisk") && (
         <div className="card">
           <div className="filters">
             <div>
@@ -68,7 +75,7 @@ export default function StaffDashboardPage() {
           <table>
             <thead>
               <tr>
-                <th>Student</th><th>Population</th><th>Program</th><th>Progress</th><th>Overdue</th><th>Status</th>
+                <th>Student</th><th>Population</th><th>Program</th><th>Assigned to</th><th>Progress</th><th>Overdue</th><th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -77,6 +84,10 @@ export default function StaffDashboardPage() {
                   <td><strong>{s.full_name}</strong><br /><span className="hint" style={{margin:0}}>{s.email}</span></td>
                   <td style={{ textTransform: "capitalize" }}>{s.population}{s.country ? ` (${s.country})` : ""}</td>
                   <td>{s.program}</td>
+                  <td>
+                    {s.assigned_staff_name || <span className="hint" style={{margin:0}}>Unassigned</span>}
+                    {s.assignment_is_coverage && <span className="badge risk" style={{marginLeft:6}}>Coverage</span>}
+                  </td>
                   <td>{s.completed_items}/{s.total_items} &middot; {s.percent_complete}%</td>
                   <td>{s.overdue_count > 0 ? s.overdue_count : "\u2014"}</td>
                   <td>
@@ -88,7 +99,7 @@ export default function StaffDashboardPage() {
                 </tr>
               ))}
               {(tab === "atrisk" ? atRiskStudents : students).length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: "center", color: "#5a6472", padding: 24 }}>No students match this view.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: "center", color: "#5a6472", padding: 24 }}>No students match this view.</td></tr>
               )}
             </tbody>
           </table>
@@ -102,6 +113,8 @@ export default function StaffDashboardPage() {
           <AssistantWidget />
         </div>
       )}
+
+      {tab === "admin" && canManageCaseloads && <AdminConsolePage />}
     </div>
   );
 }
