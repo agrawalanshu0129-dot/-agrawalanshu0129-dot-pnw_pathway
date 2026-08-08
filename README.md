@@ -117,6 +117,13 @@ npm run dev                 # http://localhost:5173
 
 **A note on the free tier:** Render's free web service sleeps after 15 minutes of no traffic. The first request after sleeping takes 30-60 seconds to wake up; the UI shows a loading state during this, it is not broken. Neon's database similarly scales to zero when idle and wakes automatically on the next query.
 
+## CI/CD
+
+- GitHub Actions workflow: `.github/workflows/ci.yml`
+  - Runs backend install + unit tests (`npm test`)
+  - Runs frontend install + production build (`npm run build`)
+- Vercel continues to provide automatic preview/production deployments from GitHub pushes on the frontend app.
+
 ## Demo Accounts
 
 Password for all: `Demo1234!`
