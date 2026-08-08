@@ -7,17 +7,26 @@ const router = express.Router();
 
 router.get("/", requireAuth, requireRole("staff", "supervisor", "admin"), async (req, res) => {
   const { population, program } = req.query;
+  // FR8: staff see their own caseload by default; supervisor/admin see
+  // everyone unless they explicitly ask to filter to their own (?mine=true).
+  const mine = req.query.mine === "true" || req.user.role === "staff";
 
   try {
     const params = [];
     let where = "1=1";
     if (population) { params.push(population); where += ` AND s.population = $${params.length}`; }
     if (program) { params.push(program); where += ` AND s.program ILIKE $${params.length}`; }
+    if (mine) { params.push(req.user.id); where += ` AND a.staff_user_id = $${params.length}`; }
 
     const studentsRes = await pool.query(
       `SELECT s.id, s.population, s.program, s.country, s.funding_type, s.onboarded_at,
-              u.full_name, u.email
-       FROM students s JOIN users u ON u.id = s.user_id
+              u.full_name, u.email,
+              a.staff_user_id AS assigned_staff_id, su.full_name AS assigned_staff_name,
+              a.is_coverage AS assignment_is_coverage
+       FROM students s
+       JOIN users u ON u.id = s.user_id
+       LEFT JOIN assignments a ON a.student_id = s.id AND a.ended_at IS NULL
+       LEFT JOIN users su ON su.id = a.staff_user_id
        WHERE ${where}
        ORDER BY s.onboarded_at DESC NULLS LAST`,
       params

@@ -39,4 +39,18 @@ export const api = {
 
   cityInfo: (token) => request("/city/info", { token }),
   askCityAssistant: (token, question) => request("/city/ask", { method: "POST", token, body: { question } }),
+
+  assignments: (token, mine) => request(`/assignments${mine ? "?mine=true" : ""}`, { token }),
+  assignableStaff: (token) => request("/assignments/staff", { token }),
+  unassignedStudents: (token) => request("/assignments/unassigned", { token }),
+  assignStudent: (token, student_id, staff_user_id) =>
+    request("/assignments", { method: "POST", token, body: { student_id, staff_user_id } }),
+  reassignCaseload: (token, from_staff_user_id, to_staff_user_id) =>
+    request("/assignments/reassign", { method: "POST", token, body: { from_staff_user_id, to_staff_user_id } }),
+  endAssignment: (token, id) => request(`/assignments/${id}/end`, { method: "PATCH", token }),
+
+  adminUsers: (token, role) => request(`/admin/users${role ? `?role=${role}` : ""}`, { token }),
+  createStaffUser: (token, body) => request("/admin/users", { method: "POST", token, body }),
+  changeUserRole: (token, id, role) =>
+    request(`/admin/users/${id}/role`, { method: "PATCH", token, body: { role } }),
 };
