@@ -62,6 +62,7 @@ export default function StaffDashboardPage() {
 
   const { students, summary } = data;
   const atRiskStudents = students.filter((s) => s.at_risk);
+  const staffHasEmptyCaseload = user.role === "staff" && students.length === 0 && !population && !program;
 
   return (
     <div className="container wide">
@@ -144,7 +145,13 @@ export default function StaffDashboardPage() {
                 </tr>
               ))}
               {(tab === "atrisk" ? atRiskStudents : students).length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: "center", color: "#5a6472", padding: 24 }}>No students match this view.</td></tr>
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", color: "#5a6472", padding: 24 }}>
+                    {staffHasEmptyCaseload
+                      ? "You don't have any students assigned to your caseload yet. Ask your supervisor or admin to assign students to you."
+                      : "No students match this view."}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

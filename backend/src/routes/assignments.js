@@ -1,10 +1,29 @@
 const express = require("express");
 const { pool } = require("../db");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const { sendEmail } = require("../email");
 
 const router = express.Router();
 
 const STAFF_ROLES = ["staff", "supervisor", "admin"];
+
+// Best-effort: assignment succeeded regardless of whether this email goes
+// out (or is just logged, per email.js's optional-key fallback), so a
+// failure here is logged and swallowed rather than surfaced to the caller.
+async function notifyAssignment(staffUserId, subject, body) {
+  try {
+    const staffRes = await pool.query("SELECT email, full_name FROM users WHERE id = $1", [staffUserId]);
+    if (staffRes.rows.length === 0) return;
+    const staff = staffRes.rows[0];
+    await sendEmail({
+      to: staff.email,
+      subject,
+      text: `Hi ${staff.full_name.split(" ")[0]},\n\n${body}\n\n- PNW Pathway`,
+    });
+  } catch (err) {
+    console.error("Assignment notification failed:", err.message);
+  }
+}
 
 // FR8: caseload -- which staff member currently owns which student.
 // A student has at most one active (ended_at IS NULL) assignment at a time.
@@ -110,6 +129,17 @@ router.post("/", requireAuth, requireRole("supervisor", "admin"), async (req, re
     );
 
     await client.query("COMMIT");
+
+    const studentNameRes = await pool.query(
+      "SELECT u.full_name FROM students s JOIN users u ON u.id = s.user_id WHERE s.id = $1",
+      [student_id]
+    );
+    notifyAssignment(
+      staff_user_id,
+      "PNW Pathway: new student assigned to your caseload",
+      `${studentNameRes.rows[0].full_name} has been assigned to your caseload. Log in to view their checklist.`
+    );
+
     res.status(201).json(ins.rows[0]);
   } catch (err) {
     await client.query("ROLLBACK");
@@ -174,6 +204,13 @@ router.post("/reassign", requireAuth, requireRole("supervisor", "admin"), async 
     );
 
     await client.query("COMMIT");
+
+    notifyAssignment(
+      to_staff_user_id,
+      "PNW Pathway: caseload coverage assigned to you",
+      `${activeRes.rows.length} student(s) have been reassigned to you for coverage. Log in to view your caseload.`
+    );
+
     res.json({ reassigned_count: activeRes.rows.length });
   } catch (err) {
     await client.query("ROLLBACK");
