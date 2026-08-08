@@ -53,6 +53,28 @@ export default function StudentChecklistPage() {
     }
   }
 
+  async function uploadDocument(itemId, file) {
+    if (!file) return;
+    setError("");
+    setBusyId(itemId);
+    try {
+      await api.uploadMyDocument(token, itemId, file);
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function viewDocument(itemId) {
+    try {
+      await api.openMyDocument(token, itemId);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   if (error) return <div className="container"><div className="error-box">{error}</div></div>;
   if (!data) return <div className="container">Loading your checklist...</div>;
 
@@ -101,6 +123,23 @@ export default function StudentChecklistPage() {
                   {" \u00b7 Owner: "}{item.owner_office}
                 </div>
                 {item.reviewer_note && <div className="meta" style={{ marginTop: 4 }}><em>Staff note: {item.reviewer_note}</em></div>}
+                {item.has_document && (
+                  <div style={{ marginTop: 8 }}>
+                    <button className="secondary small" onClick={() => viewDocument(item.id)}>View your uploaded document</button>
+                  </div>
+                )}
+                {canSubmit && (
+                  <div style={{ marginTop: 8 }}>
+                    <label style={{ marginBottom: 3 }}>Attach document (PDF, PNG, or JPG, up to 5MB)</label>
+                    <input
+                      type="file"
+                      accept="application/pdf,image/png,image/jpeg"
+                      disabled={busyId === item.id}
+                      style={{ marginBottom: 0 }}
+                      onChange={(e) => uploadDocument(item.id, e.target.files[0])}
+                    />
+                  </div>
+                )}
               </div>
               <div className="actions">
                 {canSubmit && (

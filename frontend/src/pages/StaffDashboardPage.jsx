@@ -3,6 +3,7 @@ import { api } from "../api";
 import { useAuth } from "../AuthContext";
 import AssistantWidget from "../components/AssistantWidget";
 import AdminConsolePage from "./AdminConsolePage";
+import StudentDetailPage from "./StudentDetailPage";
 
 export default function StaffDashboardPage() {
   const { token, user } = useAuth();
@@ -11,6 +12,8 @@ export default function StaffDashboardPage() {
   const [population, setPopulation] = useState("");
   const [program, setProgram] = useState("");
   const [tab, setTab] = useState("students");
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [reminderStatus, setReminderStatus] = useState("");
   const canManageCaseloads = user.role === "supervisor" || user.role === "admin";
 
   async function load() {
@@ -27,8 +30,35 @@ export default function StaffDashboardPage() {
 
   useEffect(() => { load(); }, [population, program]); // eslint-disable-line
 
+  async function sendReminders() {
+    setReminderStatus("Sending...");
+    try {
+      const params = {};
+      if (population) params.population = population;
+      if (program) params.program = program;
+      const res = await api.sendReminders(token, params);
+      setReminderStatus(
+        res.attempted === 0
+          ? "No at-risk students in this view."
+          : `Reminders processed for ${res.attempted} student(s)` +
+            (res.sent > 0 ? ` — ${res.sent} emailed` : "") +
+            (res.fallback > 0 ? ` — ${res.fallback} logged only (no RESEND_API_KEY configured)` : "") + "."
+      );
+    } catch (err) {
+      setReminderStatus(err.message);
+    }
+  }
+
   if (error) return <div className="container wide"><div className="error-box">{error}</div></div>;
   if (!data) return <div className="container wide">Loading dashboard...</div>;
+
+  if (selectedStudentId) {
+    return (
+      <div className="container wide">
+        <StudentDetailPage studentId={selectedStudentId} onBack={() => { setSelectedStudentId(null); load(); }} />
+      </div>
+    );
+  }
 
   const { students, summary } = data;
   const atRiskStudents = students.filter((s) => s.at_risk);
@@ -70,7 +100,16 @@ export default function StaffDashboardPage() {
               <label>Program contains</label>
               <input value={program} onChange={(e) => setProgram(e.target.value)} placeholder="e.g. Computer Science" />
             </div>
+            {tab === "atrisk" && (
+              <div style={{ flex: "0 0 auto" }}>
+                <label>&nbsp;</label>
+                <button className="secondary" onClick={sendReminders} disabled={atRiskStudents.length === 0}>
+                  Send reminder emails
+                </button>
+              </div>
+            )}
           </div>
+          {tab === "atrisk" && reminderStatus && <p className="hint" style={{ marginTop: -8 }}>{reminderStatus}</p>}
 
           <table>
             <thead>
@@ -80,7 +119,13 @@ export default function StaffDashboardPage() {
             </thead>
             <tbody>
               {(tab === "atrisk" ? atRiskStudents : students).map((s) => (
-                <tr key={s.id} className={s.at_risk ? "risk-row" : ""}>
+                <tr
+                  key={s.id}
+                  className={s.at_risk ? "risk-row" : ""}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => setSelectedStudentId(s.id)}
+                  title="Open checklist"
+                >
                   <td><strong>{s.full_name}</strong><br /><span className="hint" style={{margin:0}}>{s.email}</span></td>
                   <td style={{ textTransform: "capitalize" }}>{s.population}{s.country ? ` (${s.country})` : ""}</td>
                   <td>{s.program}</td>
