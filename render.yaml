@@ -18,5 +18,7 @@ services:
         sync: false          # optional: leave unset to log reminder emails instead of sending them
       - key: RUN_SEED_ON_BOOT
         sync: false          # set to "true" once to seed on the free plan (no Shell access), then unset
+      - key: FRONTEND_URL
+        sync: false          # your deployed Vercel URL, used to build password-reset email links
       - key: PGSSL
         value: "true"

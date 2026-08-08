@@ -7,6 +7,11 @@ CREATE TABLE IF NOT EXISTS users (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- ALTER ... ADD COLUMN IF NOT EXISTS so this stays safe to re-run against an
+-- already-provisioned database (ensureSchema runs this file on every boot).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS students (
   id              SERIAL PRIMARY KEY,
   user_id         INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,

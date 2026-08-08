@@ -279,6 +279,63 @@ function StaffAccountsSection() {
   );
 }
 
+function AuditLogSection() {
+  const { token } = useAuth();
+  const [entries, setEntries] = useState(null);
+  const [error, setError] = useState("");
+  const [hasMore, setHasMore] = useState(true);
+
+  async function load(beforeId) {
+    try {
+      const res = await api.auditLog(token, beforeId);
+      setEntries((prev) => (beforeId && prev ? [...prev, ...res.entries] : res.entries));
+      setHasMore(res.entries.length === 50);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  useEffect(() => { load(); }, []); // eslint-disable-line
+
+  if (error) return <div className="error-box">{error}</div>;
+  if (!entries) return <div>Loading audit log...</div>;
+
+  return (
+    <div className="card">
+      <h2>Audit log</h2>
+      <p className="hint" style={{ marginTop: -6 }}>
+        Every mutating action across the app (assignments, reviews, uploads, admin changes, both assistants), most recent first.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Detail</th></tr>
+        </thead>
+        <tbody>
+          {entries.map((e) => (
+            <tr key={e.id}>
+              <td>{new Date(e.created_at).toLocaleString()}</td>
+              <td>{e.actor_name ? `${e.actor_name} (${e.actor_role})` : "—"}</td>
+              <td>{e.action}</td>
+              <td>{e.entity}{e.entity_id ? ` #${e.entity_id}` : ""}</td>
+              <td className="hint" style={{ margin: 0, maxWidth: 320, overflowWrap: "break-word" }}>
+                {JSON.stringify(e.detail)}
+              </td>
+            </tr>
+          ))}
+          {entries.length === 0 && (
+            <tr><td colSpan={5} style={{ textAlign: "center", color: "#5a6472", padding: 24 }}>No audit log entries yet.</td></tr>
+          )}
+        </tbody>
+      </table>
+      {hasMore && entries.length > 0 && (
+        <button className="secondary small" style={{ marginTop: 12 }} onClick={() => load(entries[entries.length - 1].id)}>
+          Load more
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function AdminConsolePage() {
   const { user } = useAuth();
   const [section, setSection] = useState("caseload");
@@ -289,9 +346,12 @@ export default function AdminConsolePage() {
         <div className="tabs" style={{ marginBottom: 18 }}>
           <button className={section === "caseload" ? "active" : ""} onClick={() => setSection("caseload")}>Caseload &amp; Coverage</button>
           <button className={section === "staff" ? "active" : ""} onClick={() => setSection("staff")}>Staff Accounts</button>
+          <button className={section === "audit" ? "active" : ""} onClick={() => setSection("audit")}>Audit Log</button>
         </div>
       )}
-      {section === "caseload" ? <CaseloadSection /> : <StaffAccountsSection />}
+      {section === "caseload" && <CaseloadSection />}
+      {section === "staff" && <StaffAccountsSection />}
+      {section === "audit" && <AuditLogSection />}
     </div>
   );
 }

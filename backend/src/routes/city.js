@@ -8,6 +8,24 @@ const router = express.Router();
 const DISCLAIMER =
   "Costs, routes, and prices change. Treat this as a starting point and verify current details before making a decision.";
 
+// Every live web-search call costs money once ANTHROPIC_API_KEY is set (see
+// README Known Limitations). Cap it per user per day rather than per IP or
+// globally, so one heavy user can't exhaust the budget for everyone else;
+// once over the cap we degrade to the free curated fallback instead of
+// erroring, so the feature stays available.
+const DAILY_LLM_QUERY_LIMIT = 20;
+
+async function countTodaysLlmQueries(userId) {
+  const result = await pool.query(
+    `SELECT count(*)::int AS count FROM audit_log
+     WHERE actor_user_id = $1 AND action = 'city_assistant_query'
+       AND detail->>'mode' = 'llm_web_search'
+       AND created_at > now() - interval '24 hours'`,
+    [userId]
+  );
+  return result.rows[0].count;
+}
+
 async function logAudit(userId, question, mode) {
   try {
     await pool.query(
@@ -63,6 +81,21 @@ router.post("/ask", requireAuth, async (req, res) => {
       answer: hits.map((d) => `From "${d.title}": ${d.text}`).join("\n\n") + `\n\n${DISCLAIMER}`,
       sources: hits.map((d) => d.title),
       mode: "fallback_curated",
+    });
+  }
+
+  if ((await countTodaysLlmQueries(req.user.id)) >= DAILY_LLM_QUERY_LIMIT) {
+    const hits = retrieve(question, 2);
+    await logAudit(req.user.id, question, "fallback_rate_limited");
+    return res.json({
+      answer:
+        (hits.length
+          ? hits.map((d) => `From "${d.title}": ${d.text}`).join("\n\n") + "\n\n"
+          : "") +
+        `You've reached today's limit for live web-search answers. Try again tomorrow, or ask about cost of living, neighborhoods, or transit for curated info right now.` +
+        `\n\n${DISCLAIMER}`,
+      sources: hits.map((d) => d.title),
+      mode: "fallback_rate_limited",
     });
   }
 

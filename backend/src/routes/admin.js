@@ -66,6 +66,34 @@ router.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
   }
 });
 
+// NFR2: audit_log is written on every mutating action but had no viewer
+// anywhere in the UI -- an admin couldn't actually audit anything.
+router.get("/audit-log", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const params = [limit];
+    let where = "1=1";
+    if (req.query.before_id) {
+      params.push(req.query.before_id);
+      where += ` AND al.id < $${params.length}`;
+    }
+    const result = await pool.query(
+      `SELECT al.id, al.action, al.entity, al.entity_id, al.detail, al.created_at,
+              u.full_name AS actor_name, u.email AS actor_email, u.role AS actor_role
+       FROM audit_log al
+       LEFT JOIN users u ON u.id = al.actor_user_id
+       WHERE ${where}
+       ORDER BY al.id DESC
+       LIMIT $1`,
+      params
+    );
+    res.json({ entries: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not load audit log" });
+  }
+});
+
 router.patch("/users/:id/role", requireAuth, requireRole("admin"), async (req, res) => {
   const { role } = req.body || {};
   if (!STAFF_ROLES.includes(role)) {

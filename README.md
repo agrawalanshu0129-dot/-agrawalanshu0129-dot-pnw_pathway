@@ -4,7 +4,7 @@ A student journey and requirements tracking platform for Pacific Northwest Unive
 
 PNW Pathway replaces the fragmented spreadsheet-and-email process admitted students go through with a single personalized checklist (domestic and international tracks), a visual journey roadmap showing what's next and its ETA, a staff dashboard with an at-risk queue, an admissions AI assistant that answers requirement questions strictly from approved university documentation, and a "Settling In" module (cost of living, neighborhoods, transit, a budget calculator, and a second, web-search-enabled assistant) for students getting oriented to Everett, WA.
 
-**Live demo:** _add your deployed Vercel URL here once deployed_
+**Live demo:** https://agrawalanshu0129-dot-pnw-pathway.vercel.app/
 **Demo accounts:** see [Demo accounts](#demo-accounts) below.
 
 ---
@@ -29,7 +29,7 @@ This mirrors the full target architecture from the capstone's architecture deliv
 
 | ID | Requirement | Where |
 |----|---|---|
-| FR1 | Students create accounts and log in | `backend/src/routes/auth.js` |
+| FR1 | Students create accounts and log in | `backend/src/routes/auth.js`, including self-service password reset (`POST /forgot-password`, `POST /reset-password`) |
 | FR2 | Personalized checklist generated from profile via config-driven rules | `backend/src/rulesEngine.js`, `backend/src/seed/requirementTemplates.js` |
 | FR3 | Students see and update item status | `backend/src/routes/students.js` (`GET/PATCH /me/checklist`) |
 | FR4 | Tasks/at-risk flags generated from triggers | `backend/src/atRisk.js`, applied live in the dashboard |
@@ -41,7 +41,7 @@ This mirrors the full target architecture from the capstone's architecture deliv
 | FR10 | AI assistant, approved-docs-only, cites sources, escalates | `backend/src/routes/ai.js`, `backend/src/ai/docs.js` |
 | FR11 | Admin console: create/manage staff, supervisor, and admin accounts | `backend/src/routes/admin.js`, `frontend/src/pages/AdminConsolePage.jsx` (Staff Accounts) |
 | NFR1 | RBAC + JWT auth | `backend/src/middleware/auth.js` |
-| NFR2 | Audit logging | `audit_log` table, written on every mutating action (including both assistants) |
+| NFR2 | Audit logging | `audit_log` table, written on every mutating action (including both assistants); viewable by admins at Admin Console → Audit Log (`GET /api/admin/audit-log`) |
 | NFR6 | Requirement rules are configuration, not code | `requirement_templates` table; edit rows, no redeploy needed |
 | NFR8 | AI safety: approved sources only, cites, escalates | `backend/src/routes/ai.js` |
 
@@ -149,10 +149,10 @@ Or register a new student account from the login screen to see onboarding and ch
 These are deliberate scope decisions for a capstone prototype on free-tier infrastructure, documented here rather than hidden:
 
 - **Document uploads are stored in Postgres, not object storage.** Files (PDF/PNG/JPG, up to 5MB) are stored as `bytea` rows rather than in S3, to avoid a paid bucket dependency for the prototype. Fine at capstone/pilot scale; a production deployment with many large files would want to move to real object storage (the upload/download routes in `backend/src/routes/students.js` are the only place that would need to change).
-- **Email reminders use the same optional-key pattern as the AI assistants.** `backend/src/email.js` sends real email via Resend's HTTP API when `RESEND_API_KEY` is set; with no key, it logs what would have been sent (zero cost, zero setup). Staff trigger sends manually from the At-Risk Queue (`POST /api/dashboard/remind`) rather than on an automatic schedule, since the prototype has no background job runner.
+- **Email (reminders and password-reset links) uses the same optional-key pattern as the AI assistants.** `backend/src/email.js` sends real email via Resend's HTTP API when `RESEND_API_KEY` is set; with no key, it logs what would have been sent instead (zero cost, zero setup) -- which means self-service password reset only actually delivers once that key is configured; until then the reset link is visible in the server logs. Staff trigger reminder sends manually from the At-Risk Queue (`POST /api/dashboard/remind`) rather than on an automatic schedule, since the prototype has no background job runner.
 - **AI assistant retrieval** uses keyword matching, not vector embeddings, to avoid a paid embeddings API. The interface (`retrieve(query, topK)` in `backend/src/ai/docs.js` and `backend/src/city/cityDocs.js`) is designed to be swapped for real embedding search without touching the routes.
 - **City Life content covers Everett, WA only.** The data model (`backend/src/city/cityDocs.js`) is a flat curated set for one city; a multi-campus version would need this keyed by campus/city.
-- **City Life web search costs money at scale.** Each query with `ANTHROPIC_API_KEY` set makes a live API call with web search enabled. Fine for a demo or small pilot; a production deployment would want caching and/or rate limiting per user.
+- **City Life web search is rate-limited, not cached.** Each query with `ANTHROPIC_API_KEY` set makes a live API call with web search enabled; capped at 20 live queries per user per day (`backend/src/routes/city.js`, tracked via `audit_log`) to bound cost, degrading gracefully to the free curated fallback once over the limit rather than erroring. A production deployment at real scale would additionally want response caching.
 
 ## License
 
