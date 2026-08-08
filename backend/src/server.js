@@ -35,11 +35,23 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 4000;
 
-ensureSchema()
-  .then(() => {
-    app.listen(PORT, () => console.log(`PNW Pathway API listening on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error("Failed to initialize database schema:", err);
-    process.exit(1);
-  });
+// Render's free plan has no Shell/One-Off Jobs access, so `npm run seed`
+// can't be run manually there. Set RUN_SEED_ON_BOOT=true (one-time, then
+// unset it) to seed on startup instead -- the seed itself is upsert-only,
+// so it's safe even if it runs more than once.
+async function start() {
+  await ensureSchema();
+  if (process.env.RUN_SEED_ON_BOOT === "true") {
+    try {
+      await require("./seed/seed").runSeed();
+    } catch (err) {
+      console.error("RUN_SEED_ON_BOOT failed (server will still start):", err);
+    }
+  }
+  app.listen(PORT, () => console.log(`PNW Pathway API listening on port ${PORT}`));
+}
+
+start().catch((err) => {
+  console.error("Failed to initialize database schema:", err);
+  process.exit(1);
+});

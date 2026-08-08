@@ -78,8 +78,10 @@ async function upsertUsersAndStudents(client) {
   console.log(`Seeded ${demoUsers.length} demo users (password for all: ${DEMO_PASSWORD}).`);
 }
 
-async function main() {
-  await ensureSchema();
+// Reusable entry point -- safe to call repeatedly (upserts only), and does
+// not touch the shared pool's lifecycle, so it can run inside a long-lived
+// process (see RUN_SEED_ON_BOOT in server.js) as well as standalone.
+async function runSeed() {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -90,12 +92,26 @@ async function main() {
     demoUsers.forEach((u) => console.log(`  ${u.role.padEnd(9)} ${u.email}  /  ${DEMO_PASSWORD}`));
   } catch (err) {
     await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+async function main() {
+  await ensureSchema();
+  try {
+    await runSeed();
+  } catch (err) {
     console.error("Seed failed:", err);
     process.exitCode = 1;
   } finally {
-    client.release();
     await pool.end();
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { runSeed };
