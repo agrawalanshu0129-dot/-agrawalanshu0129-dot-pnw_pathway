@@ -4,6 +4,8 @@ import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import StudentChecklistPage from "./pages/StudentChecklistPage";
+import StudentDashboardPage from "./pages/StudentDashboardPage";
+import NewsPage from "./pages/NewsPage";
 import StaffDashboardPage from "./pages/StaffDashboardPage";
 import CityLifePage from "./pages/CityLifePage";
 import { api } from "./api";
@@ -44,9 +46,14 @@ function StudentArea() {
         <div className="tabs">
           <button className={tab === "checklist" ? "active" : ""} onClick={() => setTab("checklist")}>My Checklist</button>
           <button className={tab === "citylife" ? "active" : ""} onClick={() => setTab("citylife")}>Settling In: Everett</button>
+          <button className={tab === "news" ? "active" : ""} onClick={() => setTab("news")}>News</button>
+          <button className={tab === "dashboard" ? "active" : ""} onClick={() => setTab("dashboard")}>Dashboard</button>
         </div>
       </div>
-      {tab === "checklist" ? <StudentChecklistPage /> : <CityLifePage />}
+      {tab === "checklist" && <StudentChecklistPage />}
+      {tab === "citylife" && <CityLifePage />}
+      {tab === "news" && <NewsPage />}
+      {tab === "dashboard" && <StudentDashboardPage />}
     </div>
   );
 }

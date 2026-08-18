@@ -79,6 +79,8 @@ export const api = {
   cityInfo: (token) => request("/city/info", { token }),
   askCityAssistant: (token, question) => request("/city/ask", { method: "POST", token, body: { question } }),
 
+  news: (token) => request("/news", { token }),
+
   assignments: (token, mine) => request(`/assignments${mine ? "?mine=true" : ""}`, { token }),
   assignableStaff: (token) => request("/assignments/staff", { token }),
   unassignedStudents: (token) => request("/assignments/unassigned", { token }),
