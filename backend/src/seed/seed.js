@@ -10,7 +10,7 @@ const demoUsers = [
   { email: "admin@pnwu.edu", role: "admin", full_name: "Dana CIO-Delegate" },
   { email: "supervisor@pnwu.edu", role: "supervisor", full_name: "Sam Rivera" },
   { email: "staff@pnwu.edu", role: "staff", full_name: "Maria Delgado (ISS)" },
-  { email: "student.intl@pnwu.edu", role: "student", full_name: "Priya Sharma",
+  { email: "student.intl@pnwu.edu", role: "student", full_name: "Alex Williams",
     profile: { population: "international", program: "MS Computer Science", country: "India", funding_type: "self" } },
   { email: "student.intl2@pnwu.edu", role: "student", full_name: "Wei Chen",
     profile: { population: "international", program: "MBA", country: "China", funding_type: "sponsored" } },
@@ -42,7 +42,7 @@ async function upsertTemplates(client) {
 // the live auto-reply feature; see backend/src/simulatedReplies.js).
 const demoConversations = {
   "student.intl@pnwu.edu": [
-    { from: "staff", body: "Hi Priya, welcome to PNW! I'm Maria, your ISS advisor. Let me know if you have any questions getting your checklist started.", daysAgo: 10 },
+    { from: "staff", body: "Hi Alex, welcome to PNW! I'm Maria, your ISS advisor. Let me know if you have any questions getting your checklist started.", daysAgo: 10 },
     { from: "student", body: "Hi Maria! Thank you. I just submitted my passport copy, does it look okay?", daysAgo: 10, hoursAgo: -1 },
     { from: "staff", body: "Yes, that one's approved. Next up is confirming your I-20 details so we can get it issued.", daysAgo: 9 },
     { from: "student", body: "Quick question -- does the bank statement need to be exactly 3 months old, or can it be more recent than that?", daysAgo: 6 },
@@ -123,10 +123,16 @@ async function upsertUsersAndStudents(client) {
   const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
   for (const u of demoUsers) {
-    const existing = await client.query("SELECT id FROM users WHERE email=$1", [u.email]);
+    const existing = await client.query("SELECT id, full_name FROM users WHERE email=$1", [u.email]);
     let userId;
     if (existing.rows.length > 0) {
       userId = existing.rows[0].id;
+      // Keep the demo persona's display name in sync with seed.js on
+      // existing installs too (e.g. renaming a demo student), without
+      // touching anything else about the account.
+      if (existing.rows[0].full_name !== u.full_name) {
+        await client.query("UPDATE users SET full_name=$1 WHERE id=$2", [u.full_name, userId]);
+      }
     } else {
       const ins = await client.query(
         `INSERT INTO users (email, password_hash, role, full_name) VALUES ($1,$2,$3,$4) RETURNING id`,

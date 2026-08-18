@@ -149,7 +149,7 @@ Password for all: `Demo1234!`
 | Staff (ISS) | staff@pnwu.edu | Dashboard + at-risk queue, own caseload only |
 | Supervisor | supervisor@pnwu.edu | Dashboard for all students, Caseload &amp; Coverage (assign/reassign) |
 | Admin | admin@pnwu.edu | Everything supervisor has, plus Admin Console (create/manage staff accounts) |
-| Student (int'l, self-funded) | student.intl@pnwu.edu | Priya Sharma, 10-item checklist including visa-critical items |
+| Student (int'l, self-funded) | student.intl@pnwu.edu | Alex Williams, 10-item checklist including visa-critical items |
 | Student (int'l, sponsored) | student.intl2@pnwu.edu | Wei Chen, sponsor-letter track instead of bank statement |
 | Student (domestic) | student.domestic@pnwu.edu | Jordan Miller, 6-item checklist, no visa-critical items |
 
