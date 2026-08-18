@@ -80,7 +80,7 @@ function StudentArea() {
       {tab === "checklist" && <StudentChecklistPage />}
       {tab === "citylife" && <CityLifePage />}
       {tab === "news" && <NewsPage />}
-      {tab === "dashboard" && <StudentDashboardPage />}
+      {tab === "dashboard" && <StudentDashboardPage onNavigate={setTab} />}
       {tab === "messages" && <MessagesPage />}
     </div>
   );

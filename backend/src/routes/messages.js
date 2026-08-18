@@ -2,16 +2,23 @@ const express = require("express");
 const { pool } = require("../db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { sendEmail } = require("../email");
+const { scheduleSimulatedReply } = require("../simulatedReplies");
 
 const router = express.Router();
 
 const MESSAGE_MAX_LENGTH = 4000;
 
 const SELECT_THREAD = `
-  SELECT m.id, m.sender_user_id, m.body, m.created_at, u.full_name AS sender_name, u.role AS sender_role
+  SELECT m.id, m.sender_user_id, m.body, m.created_at, m.is_simulated,
+         u.full_name AS sender_name, u.role AS sender_role
   FROM messages m JOIN users u ON u.id = m.sender_user_id
   WHERE m.student_id = $1
   ORDER BY m.id ASC`;
+
+const SELECT_ASSIGNED_STAFF = `
+  SELECT u.id, u.full_name, u.email, u.role
+  FROM assignments a JOIN users u ON u.id = a.staff_user_id
+  WHERE a.student_id = $1 AND a.ended_at IS NULL`;
 
 // Best-effort, mirrors notifyAssignment in assignments.js: the message is
 // already saved regardless of whether this succeeds.
@@ -34,9 +41,13 @@ router.get("/me", requireAuth, requireRole("student"), async (req, res) => {
   try {
     const studentRes = await pool.query("SELECT id FROM students WHERE user_id = $1", [req.user.id]);
     if (studentRes.rows.length === 0) return res.status(404).json({ error: "Complete onboarding first" });
+    const studentId = studentRes.rows[0].id;
 
-    const result = await pool.query(SELECT_THREAD, [studentRes.rows[0].id]);
-    res.json({ messages: result.rows });
+    const [messagesRes, staffRes] = await Promise.all([
+      pool.query(SELECT_THREAD, [studentId]),
+      pool.query(SELECT_ASSIGNED_STAFF, [studentId]),
+    ]);
+    res.json({ messages: messagesRes.rows, assigned_staff: staffRes.rows[0] || null });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Could not load messages" });
@@ -66,7 +77,9 @@ router.post("/me", requireAuth, requireRole("student"), async (req, res) => {
       [student.id]
     );
     if (staffRes.rows.length > 0) {
-      notifyNewMessage(staffRes.rows[0].staff_user_id, student.full_name, null);
+      const staffUserId = staffRes.rows[0].staff_user_id;
+      notifyNewMessage(staffUserId, student.full_name, null);
+      scheduleSimulatedReply({ studentId: student.id, staffUserId, messageBody: body });
     }
 
     res.status(201).json({ id: ins.rows[0].id, created_at: ins.rows[0].created_at });
