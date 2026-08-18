@@ -49,6 +49,11 @@ CREATE TABLE IF NOT EXISTS checklist_items (
   UNIQUE(student_id, template_id)
 );
 
+-- Timestamp of the most recent "returned, needs changes" review, mirroring
+-- completed_at's role for approvals. Powers the student dashboard's recent
+-- activity feed.
+ALTER TABLE checklist_items ADD COLUMN IF NOT EXISTS returned_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS tasks (
   id              SERIAL PRIMARY KEY,
   student_id      INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -92,6 +97,10 @@ CREATE TABLE IF NOT EXISTS messages (
   body            TEXT NOT NULL,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Marks auto-generated demo replies (see backend/src/simulatedReplies.js) so
+-- the UI can label them and no one mistakes one for a real staff response.
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_simulated BOOLEAN NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS audit_log (
   id              SERIAL PRIMARY KEY,

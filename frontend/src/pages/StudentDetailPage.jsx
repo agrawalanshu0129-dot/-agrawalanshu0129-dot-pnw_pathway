@@ -133,6 +133,7 @@ export default function StudentDetailPage({ studentId, onBack }) {
             <MessageThread
               loadFn={(token) => api.studentMessages(token, studentId)}
               sendFn={(token, body) => api.sendStudentMessage(token, studentId, body)}
+              otherPartyName={data.student.full_name.split(" ")[0]}
             />
           </div>
         </>
