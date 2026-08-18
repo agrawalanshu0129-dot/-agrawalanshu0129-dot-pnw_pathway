@@ -11,6 +11,7 @@ const cityRoutes = require("./routes/city");
 const assignmentRoutes = require("./routes/assignments");
 const adminRoutes = require("./routes/admin");
 const newsRoutes = require("./routes/news");
+const messageRoutes = require("./routes/messages");
 
 const app = express();
 app.use(cors());
@@ -28,6 +29,7 @@ app.use("/api/city", cityRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/news", newsRoutes);
+app.use("/api/messages", messageRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 app.use((err, req, res, next) => {

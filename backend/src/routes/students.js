@@ -2,6 +2,7 @@ const express = require("express");
 const { pool } = require("../db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { generateChecklist } = require("../rulesEngine");
+const { precheckDocument } = require("../ai/documentPrecheck");
 
 const router = express.Router();
 
@@ -130,6 +131,72 @@ router.get("/me/checklist", requireAuth, requireRole("student"), async (req, res
   }
 });
 
+// Hand-rolled iCalendar text rather than a new dependency -- the content
+// here (short titles/descriptions) never approaches RFC 5545's 75-octet
+// line-folding threshold, so that part of the spec is deliberately skipped.
+function escapeICSText(text) {
+  return String(text || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n");
+}
+
+function formatICSDate(dateInput) {
+  const d = new Date(dateInput);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yyyy}${mm}${dd}`;
+}
+
+function nowICSStamp() {
+  return `${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`;
+}
+
+router.get("/me/checklist.ics", requireAuth, requireRole("student"), async (req, res) => {
+  try {
+    const studentRes = await pool.query("SELECT id FROM students WHERE user_id = $1", [req.user.id]);
+    if (studentRes.rows.length === 0) return res.status(404).json({ error: "Complete onboarding first" });
+
+    const itemsRes = await pool.query(
+      `SELECT ci.id, ci.due_date, rt.title, rt.description, rt.owner_office, rt.visa_critical
+       FROM checklist_items ci
+       JOIN requirement_templates rt ON rt.id = ci.template_id
+       WHERE ci.student_id = $1 AND ci.status != 'approved'
+       ORDER BY ci.due_date ASC`,
+      [studentRes.rows[0].id]
+    );
+
+    const stamp = nowICSStamp();
+    const events = itemsRes.rows.map((item) => [
+      "BEGIN:VEVENT",
+      `UID:pnw-pathway-item-${item.id}@pnwpathway`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${formatICSDate(item.due_date)}`,
+      `SUMMARY:${escapeICSText(`${item.visa_critical ? "[Visa-critical] " : ""}${item.title}`)}`,
+      `DESCRIPTION:${escapeICSText(`${item.description || ""} (Owner: ${item.owner_office})`)}`,
+      "END:VEVENT",
+    ].join("\r\n"));
+
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//PNW Pathway//Checklist//EN",
+      "CALSCALE:GREGORIAN",
+      ...events,
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    res.set("Content-Type", "text/calendar; charset=utf-8");
+    res.set("Content-Disposition", 'attachment; filename="pnw-pathway-deadlines.ics"');
+    res.send(ics);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not generate calendar file" });
+  }
+});
+
 router.patch("/me/checklist/:itemId", requireAuth, requireRole("student"), async (req, res) => {
   const { status } = req.body || {};
   if (!["in_progress", "submitted"].includes(status)) {
@@ -189,7 +256,9 @@ router.post("/me/checklist/:itemId/document", requireAuth, requireRole("student"
     const studentId = studentRes.rows[0].id;
 
     const itemRes = await client.query(
-      "SELECT id, status FROM checklist_items WHERE id = $1 AND student_id = $2",
+      `SELECT ci.id, ci.status, rt.title FROM checklist_items ci
+       JOIN requirement_templates rt ON rt.id = ci.template_id
+       WHERE ci.id = $1 AND ci.student_id = $2`,
       [req.params.itemId, studentId]
     );
     if (itemRes.rows.length === 0) {
@@ -220,7 +289,16 @@ router.post("/me/checklist/:itemId/document", requireAuth, requireRole("student"
     );
 
     await client.query("COMMIT");
-    res.status(201).json(result.rows[0]);
+
+    // Best-effort and outside the transaction (it's a network call, not a DB
+    // write) -- the upload has already succeeded regardless of this result.
+    const ai_precheck = await precheckDocument({
+      mimeType: mime_type,
+      base64Content: content_base64,
+      itemTitle: itemRes.rows[0].title,
+    });
+
+    res.status(201).json({ ...result.rows[0], ai_precheck });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);

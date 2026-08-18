@@ -38,6 +38,14 @@ export default function StudentDashboardPage() {
     api.myChecklist(token).then(setData).catch((err) => setError(err.message));
   }, [token]);
 
+  async function exportCalendar() {
+    try {
+      await api.downloadMyCalendar(token);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   if (error) return <div className="container"><div className="error-box">{error}</div></div>;
   if (!data) return <div className="container">Loading dashboard...</div>;
 
@@ -57,8 +65,15 @@ export default function StudentDashboardPage() {
   return (
     <div className="container">
       <div className="card">
-        <h1>Your dashboard</h1>
-        <p className="subtitle" style={{ marginBottom: 20 }}>A quick read on what needs you now, and what can wait.</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+          <div>
+            <h1>Your dashboard</h1>
+            <p className="subtitle" style={{ marginBottom: 20 }}>A quick read on what needs you now, and what can wait.</p>
+          </div>
+          <button className="secondary small" onClick={exportCalendar} style={{ flexShrink: 0 }}>
+            Export deadlines (.ics)
+          </button>
+        </div>
 
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ fontSize: 56, fontWeight: 700, color: "#1f3864", lineHeight: 1 }}>{percent}%</div>

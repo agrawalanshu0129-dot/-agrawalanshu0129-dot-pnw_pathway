@@ -29,6 +29,7 @@ export default function StudentChecklistPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [precheckResults, setPrecheckResults] = useState({});
 
   async function load() {
     try {
@@ -58,7 +59,8 @@ export default function StudentChecklistPage() {
     setError("");
     setBusyId(itemId);
     try {
-      await api.uploadMyDocument(token, itemId, file);
+      const res = await api.uploadMyDocument(token, itemId, file);
+      setPrecheckResults((p) => ({ ...p, [itemId]: res.ai_precheck || null }));
       await load();
     } catch (err) {
       setError(err.message);
@@ -131,6 +133,18 @@ export default function StudentChecklistPage() {
                 {item.has_document && (
                   <div style={{ marginTop: 8 }}>
                     <button className="secondary small" onClick={() => viewDocument(item.id)}>View your uploaded document</button>
+                    {precheckResults[item.id] && (
+                      <div
+                        className="meta"
+                        style={{
+                          marginTop: 6,
+                          color: precheckResults[item.id].status === "check" ? "#b8860b" : "#2c5f2d",
+                        }}
+                      >
+                        {precheckResults[item.id].status === "check" ? "⚠ " : "✓ "}
+                        {precheckResults[item.id].note}
+                      </div>
+                    )}
                   </div>
                 )}
                 {canSubmit && (

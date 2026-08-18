@@ -32,6 +32,25 @@ async function openDocument(path, token) {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
+// Triggers a browser "Save As" for an authenticated endpoint's response,
+// since a plain <a href> can't carry the Bearer token this API requires.
+async function downloadFile(path, token, filename) {
+  const res = await fetch(`${BASE_URL}/api${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Could not download file (${res.status})`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -80,6 +99,14 @@ export const api = {
   askCityAssistant: (token, question) => request("/city/ask", { method: "POST", token, body: { question } }),
 
   news: (token) => request("/news", { token }),
+
+  downloadMyCalendar: (token) => downloadFile("/students/me/checklist.ics", token, "pnw-pathway-deadlines.ics"),
+
+  myMessages: (token) => request("/messages/me", { token }),
+  sendMyMessage: (token, body) => request("/messages/me", { method: "POST", token, body: { body } }),
+  studentMessages: (token, studentId) => request(`/messages/${studentId}`, { token }),
+  sendStudentMessage: (token, studentId, body) =>
+    request(`/messages/${studentId}`, { method: "POST", token, body: { body } }),
 
   assignments: (token, mine) => request(`/assignments${mine ? "?mine=true" : ""}`, { token }),
   assignableStaff: (token) => request("/assignments/staff", { token }),
