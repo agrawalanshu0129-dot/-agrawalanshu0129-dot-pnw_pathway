@@ -53,12 +53,13 @@ This mirrors the full target architecture from the capstone's architecture deliv
 | Journey roadmap: what's next, and its ETA | `backend/src/routes/students.js` (roadmap computed from `sort_order`), `frontend/src/components/RoadmapView.jsx` |
 | City Life module: cost of living, neighborhoods, transit, budget calculator | `backend/src/city/cityDocs.js`, `backend/src/routes/city.js`, `frontend/src/pages/CityLifePage.jsx` |
 | City Life assistant with live web search | `backend/src/routes/city.js` (`POST /api/city/ask`) |
-| Real document uploads (passport, financial docs, etc.) | `backend/src/routes/students.js` (`POST/GET .../document`), stored as `bytea` in Postgres — no paid object-storage bucket required |
+| Real document uploads (passport, financial docs, etc.), with remove/replace | `backend/src/routes/students.js` (`POST/GET/DELETE .../document`), stored as `bytea` in Postgres — no paid object-storage bucket required. Students can remove an uploaded file or upload a new one in its place any time before staff approval; once approved, the document is locked. |
 | Student dashboard: visual urgency breakdown (overdue/due-soon/on-track) + a prioritized "needs attention" list | `frontend/src/pages/StudentDashboardPage.jsx` — pure client-side view over the existing checklist data, no new endpoint |
 | Immigration/visa News tab | `backend/src/routes/news.js`, `frontend/src/pages/NewsPage.jsx` — see the dedicated note below, this one has real safety framing baked in |
 | Direct messaging between a student and their assigned ISS staff | `backend/src/routes/messages.js`, `frontend/src/components/MessageThread.jsx` (shared by `MessagesPage.jsx` for students and embedded in `StudentDetailPage.jsx` for staff). One thread per student rather than per staff member, so coverage handoffs (FR9) don't lose history. Best-effort email notification to the other party on a new message. |
 | Calendar export (.ics) of open deadlines | `backend/src/routes/students.js` (`GET /me/checklist.ics`) — hand-generated iCalendar text, no new dependency; downloadable from the student Dashboard |
 | AI pre-check on document uploads | `backend/src/ai/documentPrecheck.js` — optional-key vision check (image or PDF) for obvious scan problems (blurry, cropped, wrong file), shown to the student immediately after upload. Only comments on scan quality, never on document content; never blocks the upload or replaces staff review. |
+| Dark mode | `frontend/src/App.jsx` (`useTheme` hook), `frontend/src/styles.css` — follows the system preference by default, with a toggle in the top bar to force light or dark; choice persists in `localStorage`. |
 
 These were added mid-course, after the Week 4 feature freeze in the project plan. Documented here rather than silently absorbed into the original FR list, since a capstone's process record should reflect what actually happened.
 

@@ -12,13 +12,38 @@ import CityLifePage from "./pages/CityLifePage";
 import { api } from "./api";
 import "./styles.css";
 
-function TopBar() {
+function useTheme() {
+  const [theme, setTheme] = useState(() => localStorage.getItem("pnwp_theme") || "system");
+
+  useEffect(() => {
+    if (theme === "system") {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+  }, [theme]);
+
+  function toggle() {
+    const isDarkNow = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    const next = isDarkNow ? "light" : "dark";
+    localStorage.setItem("pnwp_theme", next);
+    setTheme(next);
+  }
+
+  const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  return { isDark, toggle };
+}
+
+function TopBar({ isDark, toggleTheme }) {
   const { user, logout } = useAuth();
   return (
     <div className="topbar">
       <div className="brand">PNW Pathway <span>Student Journey &amp; Requirements Tracker</span></div>
       <div className="who">
         {user.full_name} &middot; <span style={{ textTransform: "capitalize" }}>{user.role}</span>
+        <button className="theme-toggle" onClick={toggleTheme} title="Toggle dark mode">
+          {isDark ? "☀️ Light" : "🌙 Dark"}
+        </button>
         <button className="link" onClick={logout}>Log out</button>
       </div>
     </div>
@@ -61,13 +86,13 @@ function StudentArea() {
   );
 }
 
-function Shell() {
+function Shell({ isDark, toggleTheme }) {
   const { token, user } = useAuth();
   if (!token || !user) return <LoginPage />;
 
   return (
     <div className="app-shell">
-      <TopBar />
+      <TopBar isDark={isDark} toggleTheme={toggleTheme} />
       {user.role === "student" ? <StudentArea /> : <StaffDashboardPage />}
       <div className="footer-note">
         PNW Pathway &middot; ITEC 6993 IT Capstone prototype &middot; not affiliated with a real university system
@@ -77,12 +102,13 @@ function Shell() {
 }
 
 export default function App() {
+  const { isDark, toggle } = useTheme();
   const resetToken = new URLSearchParams(window.location.search).get("reset_token");
   if (resetToken) return <ResetPasswordPage token={resetToken} />;
 
   return (
     <AuthProvider>
-      <Shell />
+      <Shell isDark={isDark} toggleTheme={toggle} />
     </AuthProvider>
   );
 }

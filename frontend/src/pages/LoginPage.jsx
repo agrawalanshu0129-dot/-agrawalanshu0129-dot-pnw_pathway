@@ -52,7 +52,7 @@ export default function LoginPage() {
         <p className="subtitle">Student journey &amp; requirements tracker</p>
 
         {error && <div className="error-box">{error}</div>}
-        {notice && <div className="hint" style={{ color: "#2c5f2d", marginTop: -4 }}>{notice}</div>}
+        {notice && <div className="hint" style={{ color: "var(--green)", marginTop: -4 }}>{notice}</div>}
 
         <form onSubmit={submit}>
           {mode === "register" && (

@@ -40,7 +40,7 @@ export default function ResetPasswordPage({ token }) {
 
         {notice ? (
           <>
-            <div className="hint" style={{ color: "#2c5f2d", marginTop: -4 }}>{notice}</div>
+            <div className="hint" style={{ color: "var(--green)", marginTop: -4 }}>{notice}</div>
             <button className="primary" style={{ width: "100%", marginTop: 12 }} onClick={goToLogin}>
               Go to login
             </button>

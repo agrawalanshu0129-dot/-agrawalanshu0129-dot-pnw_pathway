@@ -71,7 +71,7 @@ export default function StaffDashboardPage() {
 
       <div className="summary-grid">
         <div className="stat"><div className="num">{summary.total_students}</div><div className="label">Students onboarded</div></div>
-        <div className="stat"><div className="num" style={{ color: summary.at_risk_count > 0 ? "#8a2f2f" : "#2c5f2d" }}>{summary.at_risk_count}</div><div className="label">At-risk students</div></div>
+        <div className="stat"><div className="num" style={{ color: summary.at_risk_count > 0 ? "var(--red)" : "var(--green)" }}>{summary.at_risk_count}</div><div className="label">At-risk students</div></div>
         <div className="stat"><div className="num">{summary.avg_percent_complete}%</div><div className="label">Avg. completion</div></div>
       </div>
 
@@ -146,7 +146,7 @@ export default function StaffDashboardPage() {
               ))}
               {(tab === "atrisk" ? atRiskStudents : students).length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", color: "#5a6472", padding: 24 }}>
+                  <td colSpan={7} style={{ textAlign: "center", color: "var(--gray)", padding: 24 }}>
                     {staffHasEmptyCaseload
                       ? "You don't have any students assigned to your caseload yet. Ask your supervisor or admin to assign students to you."
                       : "No students match this view."}

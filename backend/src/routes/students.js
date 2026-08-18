@@ -329,6 +329,50 @@ router.get("/me/checklist/:itemId/document", requireAuth, requireRole("student")
   }
 });
 
+// Lets a student swap out a wrong file, or just detach it entirely, any
+// time before staff approves the item -- pairs with re-upload (POST above)
+// already being safe to call again while status='submitted' (it replaces
+// the row rather than erroring on a duplicate).
+router.delete("/me/checklist/:itemId/document", requireAuth, requireRole("student"), async (req, res) => {
+  try {
+    const studentRes = await pool.query("SELECT id FROM students WHERE user_id = $1", [req.user.id]);
+    if (studentRes.rows.length === 0) return res.status(404).json({ error: "Student profile not found" });
+    const studentId = studentRes.rows[0].id;
+
+    const itemRes = await pool.query(
+      "SELECT id, status FROM checklist_items WHERE id = $1 AND student_id = $2",
+      [req.params.itemId, studentId]
+    );
+    if (itemRes.rows.length === 0) return res.status(404).json({ error: "Checklist item not found" });
+    if (itemRes.rows[0].status === "approved") {
+      return res.status(400).json({ error: "This item is already approved; the document can't be removed" });
+    }
+
+    const delRes = await pool.query(
+      "DELETE FROM documents WHERE checklist_item_id = $1 AND student_id = $2 RETURNING id",
+      [req.params.itemId, studentId]
+    );
+    if (delRes.rows.length === 0) return res.status(404).json({ error: "No document uploaded for this item" });
+
+    const result = await pool.query(
+      `UPDATE checklist_items SET status = CASE WHEN status = 'submitted' THEN 'in_progress' ELSE status END
+       WHERE id = $1 RETURNING *`,
+      [req.params.itemId]
+    );
+
+    await pool.query(
+      `INSERT INTO audit_log (actor_user_id, action, entity, entity_id, detail)
+       VALUES ($1,'remove_document','checklist_item',$2,$3)`,
+      [req.user.id, req.params.itemId, {}]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not remove document" });
+  }
+});
+
 router.get("/:studentId/checklist/:itemId/document", requireAuth, requireRole("staff", "supervisor", "admin"), async (req, res) => {
   try {
     if (req.user.role === "staff") {

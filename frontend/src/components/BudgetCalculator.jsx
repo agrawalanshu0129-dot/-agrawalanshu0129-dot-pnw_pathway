@@ -39,7 +39,7 @@ export default function BudgetCalculator({ estimate }) {
             <td style={{ textAlign: "right" }}>${total.toLocaleString()}</td>
           </tr>
           {monthlyIncome > 0 && (
-            <tr style={{ fontWeight: 700, color: remaining >= 0 ? "#2c5f2d" : "#8a2f2f" }}>
+            <tr style={{ fontWeight: 700, color: remaining >= 0 ? "var(--green)" : "var(--red)" }}>
               <td>{remaining >= 0 ? "Left over" : "Shortfall"}</td>
               <td style={{ textAlign: "right" }}>${Math.abs(remaining).toLocaleString()}</td>
             </tr>

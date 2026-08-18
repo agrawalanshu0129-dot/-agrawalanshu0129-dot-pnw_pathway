@@ -24,9 +24,9 @@ function bucketFor(item) {
 }
 
 const BUCKET = {
-  overdue: { label: "Overdue", color: "#8a2f2f", icon: "⚠" },
-  soon: { label: "Due soon", color: "#b8860b", icon: "⏳" },
-  ontrack: { label: "On track", color: "#2c5f2d", icon: "✓" },
+  overdue: { label: "Overdue", color: "var(--red)", fill: "var(--red-solid)", icon: "⚠" },
+  soon: { label: "Due soon", color: "var(--amber)", fill: "var(--amber-solid)", icon: "⏳" },
+  ontrack: { label: "On track", color: "var(--green)", fill: "var(--green-solid)", icon: "✓" },
 };
 
 export default function StudentDashboardPage() {
@@ -76,7 +76,7 @@ export default function StudentDashboardPage() {
         </div>
 
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: 56, fontWeight: 700, color: "#1f3864", lineHeight: 1 }}>{percent}%</div>
+          <div style={{ fontSize: 56, fontWeight: 700, color: "var(--accent)", lineHeight: 1 }}>{percent}%</div>
           <div className="hint" style={{ margin: "6px 0 0" }}>of your checklist complete ({completed}/{items.length} approved)</div>
         </div>
 
@@ -90,7 +90,7 @@ export default function StudentDashboardPage() {
                     title={`${BUCKET[key].label}: ${counts[key]}`}
                     style={{
                       width: `${(counts[key] / totalActionable) * 100}%`,
-                      background: BUCKET[key].color,
+                      background: BUCKET[key].fill,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -133,7 +133,7 @@ export default function StudentDashboardPage() {
                   borderLeft: `4px solid ${BUCKET[bucket].color}`,
                   padding: "10px 14px",
                   marginBottom: 8,
-                  background: "#fbfcfe",
+                  background: "var(--surface-alt)",
                   borderRadius: 4,
                   display: "flex",
                   justifyContent: "space-between",

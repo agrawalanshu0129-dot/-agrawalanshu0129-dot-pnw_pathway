@@ -3,9 +3,9 @@ function fmtDate(d) {
 }
 
 const STAGE_STYLE = {
-  done: { dot: "#2c5f2d", text: "#2c5f2d", label: "Done" },
-  current: { dot: "#1f3864", text: "#1f3864", label: "You are here" },
-  upcoming: { dot: "#b8cdeb", text: "#5a6472", label: "Upcoming" },
+  done: { dot: "var(--green)", text: "var(--green)", label: "Done" },
+  current: { dot: "var(--accent)", text: "var(--accent)", label: "You are here" },
+  upcoming: { dot: "var(--ice-border)", text: "var(--gray)", label: "Upcoming" },
 };
 
 export default function RoadmapView({ roadmap }) {
@@ -19,7 +19,7 @@ export default function RoadmapView({ roadmap }) {
       <h2>Your journey</h2>
       {current ? (
         <p className="hint" style={{ marginTop: -6 }}>
-          You're on <strong style={{ color: "#1f3864" }}>{current.title}</strong>, due {fmtDate(current.due_date)}.
+          You're on <strong style={{ color: "var(--accent)" }}>{current.title}</strong>, due {fmtDate(current.due_date)}.
           {nextUp.length > 0 && ` After that: ${nextUp.map((n) => n.title).join(" \u2192 ")}.`}
         </p>
       ) : (
@@ -39,20 +39,20 @@ export default function RoadmapView({ roadmap }) {
                     height: step.stage === "current" ? 16 : 12,
                     borderRadius: "50%",
                     background: style.dot,
-                    border: step.stage === "current" ? "3px solid #b8cdeb" : "none",
+                    border: step.stage === "current" ? "3px solid var(--ice-border)" : "none",
                     marginBottom: 6,
                   }}
                 />
                 <div style={{ fontSize: 12, fontWeight: step.stage === "current" ? 700 : 500, color: style.text, textAlign: "center", padding: "0 4px" }}>
                   {step.title}
                 </div>
-                <div style={{ fontSize: 11, color: "#5a6472", marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: "var(--gray)", marginTop: 2 }}>
                   {step.stage === "done" ? "\u2713 Approved" : `ETA ${fmtDate(step.due_date)}`}
                 </div>
                 {step.visa_critical && <div className="badge visa" style={{ marginTop: 4 }}>Visa</div>}
               </div>
               {i < roadmap.length - 1 && (
-                <div style={{ height: 2, width: 32, background: "#d9dfe8", marginTop: step.stage === "current" ? 8 : 6, flexShrink: 0 }} />
+                <div style={{ height: 2, width: 32, background: "var(--border)", marginTop: step.stage === "current" ? 8 : 6, flexShrink: 0 }} />
               )}
             </div>
           );

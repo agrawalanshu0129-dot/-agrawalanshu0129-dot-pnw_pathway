@@ -1,6 +1,16 @@
 :root {
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --surface-alt: #fbfcfe;
+  --text: #1a1a1a;
+  --text-secondary: #33404f;
+  --gray: #5a6472;
+  --border: #d9dfe8;
+
   --navy: #1f3864;
   --navy-light: #2a4a80;
+  --accent: #1f3864;
+
   --ice: #eaf1fc;
   --ice-border: #b8cdeb;
   --green: #2c5f2d;
@@ -9,14 +19,88 @@
   --amber-bg: #fff7e8;
   --red: #8a2f2f;
   --red-bg: #fbf1f1;
-  --gray: #5a6472;
-  --border: #d9dfe8;
-  --bg: #f7f9fc;
+  --neutral-bg: #eceff3;
+  --neutral-fg: #55606e;
+  --purple-bg: #f3e8fb;
+  --purple-fg: #6a2a8f;
+  --error-border: #e0b9b9;
+  --wake-border: #e8d29a;
+  --wake-fg: #6b5209;
+
+  /* Fixed, theme-independent -- for solid fills (e.g. a colored bar segment)
+     that carry white text on top; --red/--amber/--green above are for text
+     drawn directly on the page surface, and get lighter in dark mode, which
+     would ruin contrast if used as a fill instead. */
+  --red-solid: #8a2f2f;
+  --amber-solid: #b8860b;
+  --green-solid: #2c5f2d;
+
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
 }
 
+/* Follows the OS/browser preference automatically, unless the user has
+   explicitly picked a theme (data-theme) via the toggle in TopBar. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10151f;
+    --surface: #1b2230;
+    --surface-alt: #222b3d;
+    --text: #e8ecf3;
+    --text-secondary: #b8c2d4;
+    --gray: #93a0b5;
+    --border: #313d52;
+
+    --accent: #7fa8e8;
+
+    --ice: #223148;
+    --ice-border: #3a4f6e;
+    --green: #6fbf73;
+    --green-bg: #1c3320;
+    --amber: #e0b84a;
+    --amber-bg: #3a2f10;
+    --red: #e08585;
+    --red-bg: #3a1f1f;
+    --neutral-bg: #2a3140;
+    --neutral-fg: #b7c0d1;
+    --purple-bg: #34293f;
+    --purple-fg: #c9a3e8;
+    --error-border: #5a3232;
+    --wake-border: #4a3f1a;
+    --wake-fg: #e0c060;
+  }
+}
+
+/* Explicit toggle always wins over the system preference. */
+:root[data-theme="dark"] {
+  --bg: #10151f;
+  --surface: #1b2230;
+  --surface-alt: #222b3d;
+  --text: #e8ecf3;
+  --text-secondary: #b8c2d4;
+  --gray: #93a0b5;
+  --border: #313d52;
+
+  --accent: #7fa8e8;
+
+  --ice: #223148;
+  --ice-border: #3a4f6e;
+  --green: #6fbf73;
+  --green-bg: #1c3320;
+  --amber: #e0b84a;
+  --amber-bg: #3a2f10;
+  --red: #e08585;
+  --red-bg: #3a1f1f;
+  --neutral-bg: #2a3140;
+  --neutral-fg: #b7c0d1;
+  --purple-bg: #34293f;
+  --purple-fg: #c9a3e8;
+  --error-border: #5a3232;
+  --wake-border: #4a3f1a;
+  --wake-fg: #e0c060;
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: #1a1a1a; }
+body { margin: 0; background: var(--bg); color: var(--text); }
 
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
 
@@ -28,23 +112,28 @@ body { margin: 0; background: var(--bg); color: #1a1a1a; }
 .topbar .brand span { color: #b8cdeb; font-weight: 400; font-size: 0.85rem; margin-left: 8px; }
 .topbar .who { font-size: 0.9rem; display: flex; align-items: center; gap: 12px; }
 .topbar button.link { background: none; border: none; color: #cfe0f7; cursor: pointer; text-decoration: underline; font-size: 0.85rem; }
+.topbar button.theme-toggle {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); color: white;
+  cursor: pointer; font-size: 0.85rem; padding: 5px 10px; border-radius: 20px; line-height: 1;
+}
+.topbar button.theme-toggle:hover { background: rgba(255,255,255,0.22); }
 
 .container { max-width: 980px; margin: 0 auto; padding: 28px 20px 60px; width: 100%; }
 .container.wide { max-width: 1180px; }
 
 .card {
-  background: white; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
   padding: 22px 24px; margin-bottom: 18px;
 }
 
-h1 { font-size: 1.55rem; color: var(--navy); margin: 0 0 6px; }
-h2 { font-size: 1.15rem; color: var(--navy); margin: 0 0 14px; }
+h1 { font-size: 1.55rem; color: var(--accent); margin: 0 0 6px; }
+h2 { font-size: 1.15rem; color: var(--accent); margin: 0 0 14px; }
 p.subtitle { color: var(--gray); margin: 0 0 22px; }
 
-label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #33404f; }
+label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: var(--text-secondary); }
 input, select, textarea {
   width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px;
-  font-size: 0.95rem; margin-bottom: 15px; background: white;
+  font-size: 0.95rem; margin-bottom: 15px; background: var(--surface); color: var(--text);
 }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--navy-light); outline-offset: 1px; }
 
@@ -55,21 +144,25 @@ button.primary {
 button.primary:hover { background: var(--navy-light); }
 button.primary:disabled { opacity: 0.55; cursor: not-allowed; }
 button.secondary {
-  background: white; color: var(--navy); border: 1px solid var(--navy); padding: 8px 16px;
+  background: var(--surface); color: var(--accent); border: 1px solid var(--accent); padding: 8px 16px;
   border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
 }
 button.small { padding: 5px 11px; font-size: 0.8rem; border-radius: 5px; }
+button.danger {
+  background: var(--surface); color: var(--red); border: 1px solid var(--red); padding: 8px 16px;
+  border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+}
 
-.error-box { background: var(--red-bg); border: 1px solid #e0b9b9; color: var(--red); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; }
+.error-box { background: var(--red-bg); border: 1px solid var(--error-border); color: var(--red); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; }
 .hint { color: var(--gray); font-size: 0.85rem; margin-top: -8px; margin-bottom: 14px; }
 
 .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
-.badge.not_started { background: #eceff3; color: #55606e; }
+.badge.not_started { background: var(--neutral-bg); color: var(--neutral-fg); }
 .badge.in_progress { background: var(--amber-bg); color: var(--amber); }
-.badge.submitted { background: var(--ice); color: var(--navy); }
+.badge.submitted { background: var(--ice); color: var(--accent); }
 .badge.approved { background: var(--green-bg); color: var(--green); }
 .badge.returned { background: var(--red-bg); color: var(--red); }
-.badge.visa { background: #f3e8fb; color: #6a2a8f; margin-left: 6px; }
+.badge.visa { background: var(--purple-bg); color: var(--purple-fg); margin-left: 6px; }
 .badge.risk { background: var(--red-bg); color: var(--red); }
 .badge.ok { background: var(--green-bg); color: var(--green); }
 
@@ -84,8 +177,8 @@ tr.risk-row { background: var(--red-bg); }
 .checklist-item .actions { display: flex; gap: 8px; flex-shrink: 0; }
 
 .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
-.stat { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; text-align: center; }
-.stat .num { font-size: 1.8rem; font-weight: 700; color: var(--navy); }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; text-align: center; }
+.stat .num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
 .stat .label { font-size: 0.8rem; color: var(--gray); margin-top: 4px; }
 
 .filters { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-end; }
@@ -95,25 +188,25 @@ tr.risk-row { background: var(--red-bg); }
 
 .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
 .tabs button { background: none; border: none; padding: 10px 16px; font-size: 0.92rem; font-weight: 600; color: var(--gray); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
-.tabs button.active { color: var(--navy); border-bottom-color: var(--navy); }
+.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-.chat-box { border: 1px solid var(--border); border-radius: 8px; padding: 14px; max-height: 340px; overflow-y: auto; margin-bottom: 12px; background: #fbfcfe; }
+.chat-box { border: 1px solid var(--border); border-radius: 8px; padding: 14px; max-height: 340px; overflow-y: auto; margin-bottom: 12px; background: var(--surface-alt); }
 .chat-msg { margin-bottom: 12px; }
 .chat-msg .role { font-size: 0.75rem; font-weight: 700; color: var(--gray); margin-bottom: 3px; text-transform: uppercase; }
-.chat-msg.user .role { color: var(--navy); }
+.chat-msg.user .role { color: var(--accent); }
 .chat-msg .bubble { white-space: pre-wrap; font-size: 0.9rem; line-height: 1.45; }
 .chat-msg .sources { font-size: 0.75rem; color: var(--gray); margin-top: 4px; font-style: italic; }
 .chat-input-row { display: flex; gap: 8px; }
 .chat-input-row input { margin-bottom: 0; }
 
 .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--navy); }
-.login-card { background: white; padding: 36px 34px; border-radius: 12px; width: 380px; }
+.login-card { background: var(--surface); padding: 36px 34px; border-radius: 12px; width: 380px; }
 .login-card h1 { text-align: center; }
 .login-card p.subtitle { text-align: center; }
-.demo-box { background: var(--ice); border: 1px solid var(--ice-border); border-radius: 8px; padding: 12px 14px; font-size: 0.78rem; color: #33404f; margin-top: 16px; line-height: 1.5; }
+.demo-box { background: var(--ice); border: 1px solid var(--ice-border); border-radius: 8px; padding: 12px 14px; font-size: 0.78rem; color: var(--text-secondary); margin-top: 16px; line-height: 1.5; }
 .toggle-row { text-align: center; margin-top: 14px; font-size: 0.88rem; }
-.toggle-row button { background: none; border: none; color: var(--navy); font-weight: 600; cursor: pointer; text-decoration: underline; }
+.toggle-row button { background: none; border: none; color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: underline; }
 
 .footer-note { text-align: center; color: var(--gray); font-size: 0.78rem; padding: 18px; }
 
-.wake-banner { background: var(--amber-bg); border-bottom: 1px solid #e8d29a; color: #6b5209; font-size: 0.85rem; text-align: center; padding: 8px; }
+.wake-banner { background: var(--amber-bg); border-bottom: 1px solid var(--wake-border); color: var(--wake-fg); font-size: 0.85rem; text-align: center; padding: 8px; }

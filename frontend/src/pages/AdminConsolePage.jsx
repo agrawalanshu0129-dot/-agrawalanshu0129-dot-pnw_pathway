@@ -73,7 +73,7 @@ function CaseloadSection() {
 
   return (
     <div>
-      {notice && <div className="hint" style={{ color: "#2c5f2d", marginBottom: 14 }}>{notice}</div>}
+      {notice && <div className="hint" style={{ color: "var(--green)", marginBottom: 14 }}>{notice}</div>}
 
       <div className="card">
         <h2>Assign a student</h2>
@@ -158,7 +158,7 @@ function CaseloadSection() {
               </tr>
             ))}
             {assignments.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#5a6472", padding: 24 }}>No active assignments.</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "var(--gray)", padding: 24 }}>No active assignments.</td></tr>
             )}
           </tbody>
         </table>
@@ -213,7 +213,7 @@ function StaffAccountsSection() {
 
   return (
     <div>
-      {notice && <div className="hint" style={{ color: "#2c5f2d", marginBottom: 14 }}>{notice}</div>}
+      {notice && <div className="hint" style={{ color: "var(--green)", marginBottom: 14 }}>{notice}</div>}
 
       <div className="card">
         <h2>Create a staff account</h2>
@@ -323,7 +323,7 @@ function AuditLogSection() {
             </tr>
           ))}
           {entries.length === 0 && (
-            <tr><td colSpan={5} style={{ textAlign: "center", color: "#5a6472", padding: 24 }}>No audit log entries yet.</td></tr>
+            <tr><td colSpan={5} style={{ textAlign: "center", color: "var(--gray)", padding: 24 }}>No audit log entries yet.</td></tr>
           )}
         </tbody>
       </table>
