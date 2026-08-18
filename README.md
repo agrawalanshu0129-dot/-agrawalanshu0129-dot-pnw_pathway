@@ -56,6 +56,9 @@ This mirrors the full target architecture from the capstone's architecture deliv
 | Real document uploads (passport, financial docs, etc.) | `backend/src/routes/students.js` (`POST/GET .../document`), stored as `bytea` in Postgres — no paid object-storage bucket required |
 | Student dashboard: visual urgency breakdown (overdue/due-soon/on-track) + a prioritized "needs attention" list | `frontend/src/pages/StudentDashboardPage.jsx` — pure client-side view over the existing checklist data, no new endpoint |
 | Immigration/visa News tab | `backend/src/routes/news.js`, `frontend/src/pages/NewsPage.jsx` — see the dedicated note below, this one has real safety framing baked in |
+| Direct messaging between a student and their assigned ISS staff | `backend/src/routes/messages.js`, `frontend/src/components/MessageThread.jsx` (shared by `MessagesPage.jsx` for students and embedded in `StudentDetailPage.jsx` for staff). One thread per student rather than per staff member, so coverage handoffs (FR9) don't lose history. Best-effort email notification to the other party on a new message. |
+| Calendar export (.ics) of open deadlines | `backend/src/routes/students.js` (`GET /me/checklist.ics`) — hand-generated iCalendar text, no new dependency; downloadable from the student Dashboard |
+| AI pre-check on document uploads | `backend/src/ai/documentPrecheck.js` — optional-key vision check (image or PDF) for obvious scan problems (blurry, cropped, wrong file), shown to the student immediately after upload. Only comments on scan quality, never on document content; never blocks the upload or replaces staff review. |
 
 These were added mid-course, after the Week 4 feature freeze in the project plan. Documented here rather than silently absorbed into the original FR list, since a capstone's process record should reflect what actually happened.
 
@@ -71,14 +74,15 @@ pnw-pathway/
 │       ├── rulesEngine.js   FR2: profile -> checklist
 │       ├── atRisk.js        FR4/FR6: at-risk detection
 │       ├── ai/docs.js       FR10: approved document set + retrieval
+│       ├── ai/documentPrecheck.js  optional-key vision check on uploads
 │       ├── email.js         FR5: optional reminder email (Resend HTTP API)
-│       ├── routes/          auth, students, dashboard, ai, assignments (FR8/FR9), admin (FR11)
+│       ├── routes/          auth, students, dashboard, ai, assignments (FR8/FR9), admin (FR11), messages, news
 │       ├── middleware/auth.js
 │       └── seed/            demo data
 ├── frontend/          React app
 │   └── src/
-│       ├── pages/      Login, Onboarding, StudentChecklist, StudentDetail, StaffDashboard, AdminConsole
-│       └── components/ AssistantWidget
+│       ├── pages/      Login, Onboarding, StudentChecklist, StudentDashboard, News, Messages, StudentDetail, StaffDashboard, AdminConsole
+│       └── components/ AssistantWidget, MessageThread, RoadmapView
 ├── render.yaml         Render deployment blueprint (backend)
 └── frontend/vercel.json  Vercel deployment config (frontend)
 ```

@@ -81,6 +81,18 @@ CREATE TABLE IF NOT EXISTS documents (
   uploaded_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- One thread per student, not per staff member -- if caseload coverage
+-- changes hands (FR9), the new staff member should still see history.
+-- Access is scoped at the route layer: the student themselves, or whichever
+-- staff member currently owns that caseload (or any supervisor/admin).
+CREATE TABLE IF NOT EXISTS messages (
+  id              SERIAL PRIMARY KEY,
+  student_id      INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  sender_user_id  INTEGER NOT NULL REFERENCES users(id),
+  body            TEXT NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS audit_log (
   id              SERIAL PRIMARY KEY,
   actor_user_id   INTEGER REFERENCES users(id),
@@ -95,6 +107,7 @@ CREATE INDEX IF NOT EXISTS idx_checklist_student ON checklist_items(student_id);
 CREATE INDEX IF NOT EXISTS idx_checklist_due ON checklist_items(due_date);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_documents_checklist_item ON documents(checklist_item_id);
+CREATE INDEX IF NOT EXISTS idx_messages_student ON messages(student_id);
 
 -- City-life module: audit trail for the web-search-enabled assistant,
 -- separate from the admissions assistant's audit rows (both share

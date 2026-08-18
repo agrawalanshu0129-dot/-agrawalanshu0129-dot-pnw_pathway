@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
+import MessageThread from "../components/MessageThread";
 
 const STATUS_LABEL = {
   not_started: "Not started",
@@ -125,6 +126,14 @@ export default function StudentDetailPage({ studentId, onBack }) {
                 )}
               </div>
             ))}
+          </div>
+
+          <div className="card">
+            <h2>Messages</h2>
+            <MessageThread
+              loadFn={(token) => api.studentMessages(token, studentId)}
+              sendFn={(token, body) => api.sendStudentMessage(token, studentId, body)}
+            />
           </div>
         </>
       )}
