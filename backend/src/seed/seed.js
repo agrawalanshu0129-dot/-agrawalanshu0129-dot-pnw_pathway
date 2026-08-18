@@ -89,25 +89,47 @@ const demoStatusOverrides = {
   ],
 };
 
+function computeOverrideFields(o) {
+  const now = new Date();
+  const dueDate = new Date(now);
+  dueDate.setDate(dueDate.getDate() + o.dueInDays);
+  return {
+    status: o.status,
+    due_date: dueDate.toISOString().slice(0, 10),
+    completed_at: o.approvedDaysAgo != null ? new Date(now.getTime() - o.approvedDaysAgo * 86400000) : null,
+    returned_at: o.returnedDaysAgo != null ? new Date(now.getTime() - o.returnedDaysAgo * 86400000) : null,
+    reviewer_note: o.reviewerNote || null,
+  };
+}
+
 function applyStatusOverrides(items, codeById, overrides) {
   if (!overrides) return items;
   const byCode = Object.fromEntries(overrides.map((o) => [o.code, o]));
-  const now = new Date();
   return items.map((item) => {
     const code = codeById[item.template_id];
     const o = byCode[code];
-    if (!o) return item;
-    const dueDate = new Date(now);
-    dueDate.setDate(dueDate.getDate() + o.dueInDays);
-    return {
-      ...item,
-      status: o.status,
-      due_date: dueDate.toISOString().slice(0, 10),
-      completed_at: o.approvedDaysAgo != null ? new Date(now.getTime() - o.approvedDaysAgo * 86400000) : null,
-      returned_at: o.returnedDaysAgo != null ? new Date(now.getTime() - o.returnedDaysAgo * 86400000) : null,
-      reviewer_note: o.reviewerNote || null,
-    };
+    return o ? { ...item, ...computeOverrideFields(o) } : item;
   });
+}
+
+// For a demo account that already existed before this override table was
+// added (or before a code's entry changed) -- checklist items only get
+// generated once, on first onboarding, so a newly-added/changed override
+// would otherwise never reach an install that was seeded earlier. Runs on
+// every boot with RUN_SEED_ON_BOOT set, so the handful of items covered by
+// an override always reset back to the intended demo story (that's the
+// point -- a predictable demo state to show off). Only those specific items
+// are touched; anything else on the checklist is left exactly as-is.
+async function resyncStatusOverrides(client, studentId, overrides) {
+  for (const o of overrides) {
+    const fields = computeOverrideFields(o);
+    await client.query(
+      `UPDATE checklist_items SET status=$1, due_date=$2, completed_at=$3, returned_at=$4, reviewer_note=$5
+       WHERE student_id=$6 AND template_id=(SELECT id FROM requirement_templates WHERE code=$7)`,
+      [fields.status, fields.due_date, fields.completed_at, fields.returned_at, fields.reviewer_note,
+       studentId, o.code]
+    );
+  }
 }
 
 async function upsertAssignments(client) {
@@ -217,6 +239,8 @@ async function upsertUsersAndStudents(client) {
           );
         }
         console.log(`  Created student ${u.full_name} with ${items.length} checklist items.`);
+      } else if (demoStatusOverrides[u.email]) {
+        await resyncStatusOverrides(client, existingStudent.rows[0].id, demoStatusOverrides[u.email]);
       }
     }
   }
