@@ -47,7 +47,7 @@ export default function BudgetCalculator({ estimate }) {
         </tbody>
       </table>
       <p className="hint" style={{ marginTop: 10 }}>
-        Based on curated Everett, WA averages for a single adult. A roommate typically cuts the housing line
+        Based on curated Seattle, WA averages for a single adult. A roommate typically cuts the housing line
         significantly, since 2-bedroom rent splits well below two separate 1-bedrooms.
       </p>
     </div>

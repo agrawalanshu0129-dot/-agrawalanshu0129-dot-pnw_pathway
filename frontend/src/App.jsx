@@ -46,7 +46,7 @@ function StudentArea() {
       <div className="container" style={{ paddingBottom: 0, paddingTop: 20 }}>
         <div className="tabs">
           <button className={tab === "checklist" ? "active" : ""} onClick={() => setTab("checklist")}>My Checklist</button>
-          <button className={tab === "citylife" ? "active" : ""} onClick={() => setTab("citylife")}>Settling In: Everett</button>
+          <button className={tab === "citylife" ? "active" : ""} onClick={() => setTab("citylife")}>Settling In: Seattle</button>
           <button className={tab === "news" ? "active" : ""} onClick={() => setTab("news")}>News</button>
           <button className={tab === "dashboard" ? "active" : ""} onClick={() => setTab("dashboard")}>Dashboard</button>
           <button className={tab === "messages" ? "active" : ""} onClick={() => setTab("messages")}>Messages</button>
