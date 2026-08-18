@@ -61,6 +61,55 @@ const demoConversations = {
   ],
 };
 
+// Per-student overrides applied on top of the auto-generated checklist, so a
+// fresh install shows a realistic mix (some approved, some overdue/due soon,
+// some untouched) instead of every item sitting at "not_started" with a
+// far-future due date -- a 0%-complete dashboard doesn't make for a good
+// demo. Only listed codes are touched; everything else keeps whatever
+// generateChecklist() produced. dueInDays may be negative (overdue).
+const demoStatusOverrides = {
+  "student.intl@pnwu.edu": [
+    { code: "PASSPORT_COPY", status: "approved", dueInDays: -3, approvedDaysAgo: 2 },
+    { code: "I20_REQUEST", status: "in_progress", dueInDays: -1 },
+    { code: "BANK_STATEMENT", status: "in_progress", dueInDays: 3 },
+    { code: "TRANSCRIPT_FINAL", status: "not_started", dueInDays: 5 },
+    { code: "ENGLISH_PROFICIENCY", status: "approved", dueInDays: 11, approvedDaysAgo: 1 },
+    { code: "SEVIS_FEE", status: "returned", dueInDays: 15, returnedDaysAgo: 0,
+      reviewerNote: "Please rescan -- the receipt image is cut off at the bottom." },
+  ],
+  "student.intl2@pnwu.edu": [
+    { code: "PASSPORT_COPY", status: "approved", dueInDays: -5, approvedDaysAgo: 4 },
+    { code: "SPONSOR_LETTER", status: "in_progress", dueInDays: 2 },
+    { code: "I20_REQUEST", status: "not_started", dueInDays: 6 },
+  ],
+  "student.domestic@pnwu.edu": [
+    { code: "FAFSA", status: "approved", dueInDays: -2, approvedDaysAgo: 3 },
+    { code: "HOUSING", status: "in_progress", dueInDays: 4 },
+    { code: "ORIENTATION", status: "not_started", dueInDays: 1 },
+  ],
+};
+
+function applyStatusOverrides(items, codeById, overrides) {
+  if (!overrides) return items;
+  const byCode = Object.fromEntries(overrides.map((o) => [o.code, o]));
+  const now = new Date();
+  return items.map((item) => {
+    const code = codeById[item.template_id];
+    const o = byCode[code];
+    if (!o) return item;
+    const dueDate = new Date(now);
+    dueDate.setDate(dueDate.getDate() + o.dueInDays);
+    return {
+      ...item,
+      status: o.status,
+      due_date: dueDate.toISOString().slice(0, 10),
+      completed_at: o.approvedDaysAgo != null ? new Date(now.getTime() - o.approvedDaysAgo * 86400000) : null,
+      returned_at: o.returnedDaysAgo != null ? new Date(now.getTime() - o.returnedDaysAgo * 86400000) : null,
+      reviewer_note: o.reviewerNote || null,
+    };
+  });
+}
+
 async function upsertAssignments(client) {
   const staffRes = await client.query("SELECT id FROM users WHERE email = 'staff@pnwu.edu'");
   if (staffRes.rows.length === 0) return;
@@ -153,11 +202,18 @@ async function upsertUsersAndStudents(client) {
         const studentId = insS.rows[0].id;
 
         const tmplRes = await client.query("SELECT * FROM requirement_templates");
-        const items = generateChecklist(u.profile, tmplRes.rows, onboardedAt);
+        const codeById = Object.fromEntries(tmplRes.rows.map((t) => [t.id, t.code]));
+        const items = applyStatusOverrides(
+          generateChecklist(u.profile, tmplRes.rows, onboardedAt),
+          codeById,
+          demoStatusOverrides[u.email]
+        );
         for (const item of items) {
           await client.query(
-            `INSERT INTO checklist_items (student_id, template_id, due_date, status) VALUES ($1,$2,$3,$4)`,
-            [studentId, item.template_id, item.due_date, item.status]
+            `INSERT INTO checklist_items (student_id, template_id, due_date, status, completed_at, returned_at, reviewer_note)
+             VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+            [studentId, item.template_id, item.due_date, item.status,
+             item.completed_at || null, item.returned_at || null, item.reviewer_note || null]
           );
         }
         console.log(`  Created student ${u.full_name} with ${items.length} checklist items.`);
