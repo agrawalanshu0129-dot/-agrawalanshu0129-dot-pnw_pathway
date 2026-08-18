@@ -109,6 +109,12 @@ export const api = {
   sendStudentMessage: (token, studentId, body) =>
     request(`/messages/${studentId}`, { method: "POST", token, body: { body } }),
 
+  appointmentAvailability: (token) => request("/appointments/availability", { token }),
+  myAppointments: (token) => request("/appointments/me", { token }),
+  bookAppointment: (token, start_time) => request("/appointments", { method: "POST", token, body: { start_time } }),
+  cancelAppointment: (token, id) => request(`/appointments/${id}`, { method: "DELETE", token }),
+  studentAppointments: (token, studentId) => request(`/appointments/${studentId}`, { token }),
+
   assignments: (token, mine) => request(`/assignments${mine ? "?mine=true" : ""}`, { token }),
   assignableStaff: (token) => request("/assignments/staff", { token }),
   unassignedStudents: (token) => request("/assignments/unassigned", { token }),

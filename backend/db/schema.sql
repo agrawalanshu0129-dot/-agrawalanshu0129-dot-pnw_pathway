@@ -102,6 +102,26 @@ CREATE TABLE IF NOT EXISTS messages (
 -- the UI can label them and no one mistakes one for a real staff response.
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_simulated BOOLEAN NOT NULL DEFAULT false;
 
+-- 30-minute advising slots. Availability is computed on the fly from fixed
+-- business hours (see backend/src/routes/appointments.js) rather than a
+-- staff-editable calendar -- reasonable for a single-office prototype, and
+-- keeps this table as pure bookings, not availability configuration.
+CREATE TABLE IF NOT EXISTS appointments (
+  id              SERIAL PRIMARY KEY,
+  student_id      INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  staff_user_id   INTEGER NOT NULL REFERENCES users(id),
+  start_time      TIMESTAMPTZ NOT NULL,
+  end_time        TIMESTAMPTZ NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'cancelled')),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_appointments_student ON appointments(student_id);
+-- Belt-and-suspenders against a double-book race: two concurrent requests
+-- for the same staff member's last-open slot can both pass the application
+-- check, but only one INSERT survives this unique index.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_appointments_no_overlap
+  ON appointments(staff_user_id, start_time) WHERE status = 'scheduled';
+
 CREATE TABLE IF NOT EXISTS audit_log (
   id              SERIAL PRIMARY KEY,
   actor_user_id   INTEGER REFERENCES users(id),

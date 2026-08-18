@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
 import MessageThread from "../components/MessageThread";
+import ScheduleAppointment from "../components/ScheduleAppointment";
 
 function initials(name) {
   if (!name) return "?";
@@ -61,6 +62,8 @@ export default function MessagesPage() {
           simulateReplies
         />
       </div>
+
+      {assignedStaff && <ScheduleAppointment />}
     </div>
   );
 }

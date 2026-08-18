@@ -36,6 +36,89 @@ async function upsertTemplates(client) {
   console.log(`Seeded ${templates.length} requirement templates.`);
 }
 
+// { studentEmail: [ { from: "staff"|"student", body, daysAgo, hoursAgo }, ... ] }
+// Seeded so Messages doesn't open empty on a fresh install -- this is
+// ordinary demo content, not flagged is_simulated (that flag is reserved for
+// the live auto-reply feature; see backend/src/simulatedReplies.js).
+const demoConversations = {
+  "student.intl@pnwu.edu": [
+    { from: "staff", body: "Hi Priya, welcome to PNW! I'm Maria, your ISS advisor. Let me know if you have any questions getting your checklist started.", daysAgo: 10 },
+    { from: "student", body: "Hi Maria! Thank you. I just submitted my passport copy, does it look okay?", daysAgo: 10, hoursAgo: -1 },
+    { from: "staff", body: "Yes, that one's approved. Next up is confirming your I-20 details so we can get it issued.", daysAgo: 9 },
+    { from: "student", body: "Quick question -- does the bank statement need to be exactly 3 months old, or can it be more recent than that?", daysAgo: 6 },
+    { from: "staff", body: "It just needs to be dated within the last 6 months and show the required funding amount. A current one is fine.", daysAgo: 6, hoursAgo: -2 },
+    { from: "student", body: "Got it, thank you! I'll upload it this week.", daysAgo: 3 },
+    { from: "staff", body: "Sounds good. Also, don't forget the SEVIS I-901 fee needs to be paid before your visa interview.", daysAgo: 1 },
+  ],
+  "student.intl2@pnwu.edu": [
+    { from: "staff", body: "Hi Wei, welcome! Since you're on a sponsor letter, let me know once that's uploaded and I'll take a look.", daysAgo: 5 },
+    { from: "student", body: "Thank you! I'll get that uploaded by this weekend.", daysAgo: 4 },
+  ],
+  "student.domestic@pnwu.edu": [
+    { from: "staff", body: "Hi Jordan, welcome to PNW! Since you're a domestic student your checklist is shorter -- mainly housing and orientation. Let me know if you have questions.", daysAgo: 7 },
+    { from: "student", body: "Thanks! Will housing applications open soon?", daysAgo: 6 },
+    { from: "staff", body: "Yes, the on-campus housing portal opens next week -- I'll send a reminder.", daysAgo: 6, hoursAgo: -3 },
+  ],
+};
+
+async function upsertAssignments(client) {
+  const staffRes = await client.query("SELECT id FROM users WHERE email = 'staff@pnwu.edu'");
+  if (staffRes.rows.length === 0) return;
+  const staffId = staffRes.rows[0].id;
+
+  for (const u of demoUsers) {
+    if (!u.profile) continue;
+    const studentRes = await client.query(
+      "SELECT s.id FROM students s JOIN users usr ON usr.id = s.user_id WHERE usr.email = $1",
+      [u.email]
+    );
+    if (studentRes.rows.length === 0) continue;
+    const studentId = studentRes.rows[0].id;
+
+    const existing = await client.query(
+      "SELECT 1 FROM assignments WHERE student_id = $1 AND ended_at IS NULL",
+      [studentId]
+    );
+    if (existing.rows.length === 0) {
+      await client.query(
+        "INSERT INTO assignments (staff_user_id, student_id, is_coverage) VALUES ($1, $2, false)",
+        [staffId, studentId]
+      );
+    }
+  }
+}
+
+async function upsertDemoMessages(client) {
+  for (const [email, script] of Object.entries(demoConversations)) {
+    const res = await client.query(
+      `SELECT s.id AS student_id, s.user_id AS student_user_id
+       FROM students s JOIN users u ON u.id = s.user_id WHERE u.email = $1`,
+      [email]
+    );
+    if (res.rows.length === 0) continue;
+    const { student_id, student_user_id } = res.rows[0];
+
+    const existing = await client.query("SELECT 1 FROM messages WHERE student_id = $1 LIMIT 1", [student_id]);
+    if (existing.rows.length > 0) continue; // already seeded (or a real conversation has started)
+
+    const staffRes = await client.query(
+      `SELECT staff_user_id FROM assignments WHERE student_id = $1 AND ended_at IS NULL`,
+      [student_id]
+    );
+    if (staffRes.rows.length === 0) continue;
+    const staffUserId = staffRes.rows[0].staff_user_id;
+
+    for (const m of script) {
+      const senderId = m.from === "staff" ? staffUserId : student_user_id;
+      const createdAt = new Date(Date.now() - m.daysAgo * 86400000 - (m.hoursAgo || 0) * 3600000);
+      await client.query(
+        "INSERT INTO messages (student_id, sender_user_id, body, created_at) VALUES ($1, $2, $3, $4)",
+        [student_id, senderId, m.body, createdAt]
+      );
+    }
+  }
+}
+
 async function upsertUsersAndStudents(client) {
   const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
@@ -87,6 +170,8 @@ async function runSeed() {
     await client.query("BEGIN");
     await upsertTemplates(client);
     await upsertUsersAndStudents(client);
+    await upsertAssignments(client);
+    await upsertDemoMessages(client);
     await client.query("COMMIT");
     console.log("\nSeed complete. Demo logins:");
     demoUsers.forEach((u) => console.log(`  ${u.role.padEnd(9)} ${u.email}  /  ${DEMO_PASSWORD}`));

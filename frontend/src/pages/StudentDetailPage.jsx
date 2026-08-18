@@ -19,6 +19,7 @@ export default function StudentDetailPage({ studentId, onBack }) {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [noteDrafts, setNoteDrafts] = useState({});
+  const [appointments, setAppointments] = useState(null);
 
   async function load() {
     try {
@@ -30,6 +31,9 @@ export default function StudentDetailPage({ studentId, onBack }) {
   }
 
   useEffect(() => { load(); }, [studentId]); // eslint-disable-line
+  useEffect(() => {
+    api.studentAppointments(token, studentId).then((res) => setAppointments(res.appointments)).catch(() => setAppointments([]));
+  }, [studentId]); // eslint-disable-line
 
   async function review(itemId, status) {
     if (status === "returned" && !(noteDrafts[itemId] || "").trim()) {
@@ -127,6 +131,20 @@ export default function StudentDetailPage({ studentId, onBack }) {
               </div>
             ))}
           </div>
+
+          {appointments && appointments.length > 0 && (
+            <div className="card">
+              <h2>Upcoming appointments</h2>
+              {appointments.map((a) => (
+                <div key={a.id} className="hint" style={{ margin: "0 0 6px", color: "var(--text)" }}>
+                  {new Date(a.start_time).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+                  {" at "}
+                  {new Date(a.start_time).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                  {" — 30 min"}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="card">
             <h2>Messages</h2>

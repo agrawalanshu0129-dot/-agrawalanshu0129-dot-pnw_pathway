@@ -12,6 +12,7 @@ const assignmentRoutes = require("./routes/assignments");
 const adminRoutes = require("./routes/admin");
 const newsRoutes = require("./routes/news");
 const messageRoutes = require("./routes/messages");
+const appointmentRoutes = require("./routes/appointments");
 
 const app = express();
 app.use(cors());
@@ -30,6 +31,7 @@ app.use("/api/assignments", assignmentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/appointments", appointmentRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 app.use((err, req, res, next) => {
