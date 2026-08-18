@@ -90,6 +90,7 @@ export const api = {
     });
   },
   openMyDocument: (token, itemId) => openDocument(`/students/me/checklist/${itemId}/document`, token),
+  removeMyDocument: (token, itemId) => request(`/students/me/checklist/${itemId}/document`, { method: "DELETE", token }),
   openStudentDocument: (token, studentId, itemId) =>
     openDocument(`/students/${studentId}/checklist/${itemId}/document`, token),
 

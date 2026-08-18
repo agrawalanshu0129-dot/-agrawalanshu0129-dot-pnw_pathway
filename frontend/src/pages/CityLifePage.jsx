@@ -21,7 +21,7 @@ export default function CityLifePage() {
   return (
     <div className="container">
       <div className="card">
-        <h1>Settling in: Everett, WA</h1>
+        <h1>Settling in: Seattle, WA</h1>
         <p className="subtitle">
           Cost of living, housing, and getting around, curated for PNW University students. Figures are estimates
           as of {cost_of_living.as_of}, verify current numbers before making decisions.
@@ -37,7 +37,7 @@ export default function CityLifePage() {
           </div>
           <div className="stat">
             <div className="num">{transit.length}</div>
-            <div className="label">Transit agencies serving Everett</div>
+            <div className="label">Transit agencies serving Seattle</div>
           </div>
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function CityLifePage() {
       </div>
 
       <div className="card">
-        <h2>Ask about life in Everett</h2>
+        <h2>Ask about life in Seattle</h2>
         <p className="hint" style={{ marginTop: -6 }}>
           Separate from the requirements assistant, this one can search the web for current prices, transit changes,
           and similar day-to-day questions. Not for visa or enrollment questions, use the requirements assistant on
@@ -87,7 +87,7 @@ export default function CityLifePage() {
         <AssistantWidget
           askFn={api.askCityAssistant}
           placeholder="Ask about housing, transit, budgeting..."
-          examples={'Try asking: "What is a realistic monthly budget for a grad student?" or "How do I get from Everett Station to Seattle?"'}
+          examples={'Try asking: "What is a realistic monthly budget for a grad student?" or "How do I get from the University District to downtown Seattle?"'}
         />
       </div>
     </div>

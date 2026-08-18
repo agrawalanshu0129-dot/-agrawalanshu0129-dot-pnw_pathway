@@ -54,7 +54,7 @@ router.get("/info", requireAuth, (req, res) => {
 // which is deliberately restricted to approved documents only (NFR8, because
 // visa/requirements answers carry real consequences), this assistant is for
 // lower-stakes settling-in questions, so it is allowed to use live web search
-// when an LLM key is configured. Falls back to the curated Everett dataset
+// when an LLM key is configured. Falls back to the curated Seattle dataset
 // above at zero cost when no key is set. Kept as a fully separate route/file
 // from ai.js on purpose, so the admissions assistant's safety behavior can
 // never be affected by this one.
@@ -72,7 +72,7 @@ router.post("/ask", requireAuth, async (req, res) => {
     if (hits.length === 0) {
       return res.json({
         answer:
-          "I don't have curated information on that yet. Try asking about cost of living, neighborhoods, or getting around Everett, or set an API key to enable live web search for anything else.",
+          "I don't have curated information on that yet. Try asking about cost of living, neighborhoods, or getting around Seattle, or set an API key to enable live web search for anything else.",
         sources: [],
         mode: "fallback_no_match",
       });
@@ -100,7 +100,7 @@ router.post("/ask", requireAuth, async (req, res) => {
   }
 
   try {
-    const prompt = `You help incoming students at a university in Everett, Washington with
+    const prompt = `You help incoming students at a university in Seattle, Washington with
 practical settling-in questions: cost of living, housing/neighborhoods,
 public transit, budgeting, and similar day-to-day topics. You are NOT the
 admissions assistant, so do not answer visa, I-20, or enrollment

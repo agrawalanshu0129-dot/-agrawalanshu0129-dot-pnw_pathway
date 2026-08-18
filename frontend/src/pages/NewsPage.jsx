@@ -54,7 +54,7 @@ export default function NewsPage() {
           </div>
           <div style={{ fontSize: "0.92rem", lineHeight: 1.55, marginBottom: item.relevance_note ? 10 : 0 }}>{item.summary}</div>
           {item.relevance_note && (
-            <div style={{ fontSize: "0.85rem", lineHeight: 1.5, fontStyle: "italic", color: "#33404f" }}>
+            <div style={{ fontSize: "0.85rem", lineHeight: 1.5, fontStyle: "italic", color: "var(--text-secondary)" }}>
               {item.relevance_note}
             </div>
           )}

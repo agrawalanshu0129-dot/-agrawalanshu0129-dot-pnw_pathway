@@ -39,7 +39,7 @@ export default function BudgetCalculator({ estimate }) {
             <td style={{ textAlign: "right" }}>${total.toLocaleString()}</td>
           </tr>
           {monthlyIncome > 0 && (
-            <tr style={{ fontWeight: 700, color: remaining >= 0 ? "#2c5f2d" : "#8a2f2f" }}>
+            <tr style={{ fontWeight: 700, color: remaining >= 0 ? "var(--green)" : "var(--red)" }}>
               <td>{remaining >= 0 ? "Left over" : "Shortfall"}</td>
               <td style={{ textAlign: "right" }}>${Math.abs(remaining).toLocaleString()}</td>
             </tr>
@@ -47,7 +47,7 @@ export default function BudgetCalculator({ estimate }) {
         </tbody>
       </table>
       <p className="hint" style={{ marginTop: 10 }}>
-        Based on curated Everett, WA averages for a single adult. A roommate typically cuts the housing line
+        Based on curated Seattle, WA averages for a single adult. A roommate typically cuts the housing line
         significantly, since 2-bedroom rent splits well below two separate 1-bedrooms.
       </p>
     </div>
